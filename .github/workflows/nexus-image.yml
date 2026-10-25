@@ -42,6 +42,9 @@ jobs:
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
       - name: Build ARM64 image with pinned pi-gen
         run: bash product/image/build.sh
       - name: Verify image contents and real Home Assistant integration

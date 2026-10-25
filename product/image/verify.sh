@@ -1,5 +1,6 @@
 #!/bin/bash
-set -euo pipefail
+set -Eeuo pipefail
+trap 'echo "Image verification failed at line $LINENO: $BASH_COMMAND" >&2' ERR
 PRODUCT="$(cd "$(dirname "$0")/.." && pwd)"
 IMAGE="$(find "$PRODUCT/dist" -maxdepth 1 -name '*.img.xz' -print -quit)"
 test -n "$IMAGE"
@@ -23,9 +24,11 @@ cleanup() {
 trap cleanup EXIT
 sudo mount -o ro "${LOOP}p2" "$MOUNT"
 sudo mount -o ro "${LOOP}p1" "$BOOT"
+echo 'Checking Pi 5 boot files and installed payload'
+ls -l "$BOOT"
 test -f "$BOOT/bcm2712-rpi-5-b.dtb"
 test -f "$BOOT/kernel_2712.img"
-for file in opt/nexus/portal.py opt/nexus/home-assistant.tar.gz etc/systemd/system/nexus-homeassistant.service etc/lightdm/lightdm.conf.d/90-nexus.conf home/nexus/.config/openbox/autostart var/lib/nexus/homeassistant/www/nexus/nexus-panel.mjs; do test -s "$MOUNT/$file"; done
+for file in opt/nexus/portal.py opt/nexus/home-assistant.tar.gz etc/systemd/system/nexus-homeassistant.service etc/lightdm/lightdm.conf.d/90-nexus.conf home/nexus/.config/openbox/autostart var/lib/nexus/homeassistant/www/nexus/nexus-panel.mjs; do echo "Checking $file"; sudo test -s "$MOUNT/$file"; done
 sudo awk -F: '$1=="nexus" {if ($2 !~ /^!/) exit 1; found=1} END {if(!found)exit 1}' "$MOUNT/etc/shadow"
 ! sudo grep '^sudo:.*[, :]nexus\([, :]\|$\)' "$MOUNT/etc/group"
 sudo cp -a "$MOUNT/var/lib/nexus/homeassistant/." "$CONFIG/"
