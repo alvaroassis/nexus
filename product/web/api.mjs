@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 import { normalizePreferences, serviceFor, validateHomeName, wifiOptions } from "./model.mjs";
 
+export function withTimeout(promise, milliseconds = 35000) {
+  let timer;
+  return Promise.race([promise, new Promise((_, reject) => { timer = setTimeout(() => reject(new Error("networkPending")), milliseconds); })]).finally(() => clearTimeout(timer));
+}
+
 // The custom-panel host supplies the authenticated hass object. No separate tokens.
 export class NexusAPI {
   constructor(getHass) { this.getHass = getHass; }
@@ -47,7 +52,7 @@ export class NexusAPI {
     const info = await this.network();
     if (!info.interfaces.some((item) => item.interface === iface && item.type === "wireless")) throw new Error("noWifi");
     // Never persist the PSK. Do not assume a returned command means connectivity.
-    await this.hass.callWS({ type: "supervisor/api", endpoint: `/network/interface/${encodeURIComponent(iface)}/update`, method: "post", data: options, timeout: null });
+    await withTimeout(this.hass.callWS({ type: "supervisor/api", endpoint: `/network/interface/${encodeURIComponent(iface)}/update`, method: "post", data: options, timeout: null }));
     return this.network();
   }
 }

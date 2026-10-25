@@ -103,7 +103,7 @@ export class NexusPanel extends HTMLElement {
     if (this.busy.has(key)) return;
     this.busy.add(key); this.error = ""; this.message = ""; this.render();
     try { await action(); }
-    catch (error) { this.error = ["invalidName", "invalidWifi", "noWifi", "adminOnly", "offline", "networkUnsupported"].includes(error?.message) ? error.message : "actionFailed"; }
+    catch (error) { this.error = ["invalidName", "invalidWifi", "noWifi", "adminOnly", "offline", "networkUnsupported", "networkPending"].includes(error?.message) ? error.message : "actionFailed"; }
     finally { this.busy.delete(key); if (this.isConnected) this.render(); }
   }
   button(action, label, className = "secondary", extra = "") {
@@ -239,6 +239,7 @@ export class NexusPanel extends HTMLElement {
     }
     if (form.id === "preferences-form") await this.run("preferences", async () => {
       this.preferences = await this.api.savePreferences({...this.preferences, theme: data.get("theme"), language:data.get("language")}); this.message = "saved";
+      if (!this.demo) { try { localStorage.setItem("selectedLanguage", JSON.stringify(this.preferences.language)); } catch {} }
     });
     if (form.id === "wifi-form") {
       if (!window.confirm(this.t("networkWarning"))) return;

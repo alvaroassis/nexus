@@ -2,7 +2,7 @@
 
 ## Status
 
-Nexus starts as a fork of `home-assistant/frontend`. The inherited frontend is present; the Nexus interface, hardware image, network provisioning, and touch onboarding described below are planned, not implemented or tested on hardware yet.
+Nexus is a fork of `home-assistant/frontend`. An initial trilingual touch panel, local network portal, Raspberry Pi 5 image builder and automated checks are implemented under `product/`. The first image build succeeded on GitHub Actions. Physical Pi 5/touchscreen/radio validation remains pending. See [product/README.md](product/README.md) for current implementation, build instructions and limitations. The sections below describe the full product vision; they are not a claim that every milestone is complete.
 
 ## Product vision
 

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {NexusAPI} from "../web/api.mjs";
+import {NexusAPI, withTimeout} from "../web/api.mjs";
 function fixture(overrides={}) {
   const calls=[];
   const hass={connected:true,user:{is_admin:true},config:{components:["hassio"]},states:{"light.a":{entity_id:"light.a",state:"off"}},callWS:async(request)=>{calls.push(request);return request.type === "frontend/get_user_data" ? {value:null} : {interfaces:[{interface:"wlan0",type:"wireless"}]};},callService:async(...args)=>calls.push(args),...overrides};
@@ -34,4 +34,8 @@ test("service errors propagate without fabricated success",async()=>{
 });
 test("preferences use server-side user storage and strip extra fields",async()=>{
   const {api,calls}=fixture();await api.savePreferences({setup:true,token:"secret",favorites:[]});assert.equal(calls[0].type,"frontend/set_user_data");assert.equal(calls[0].key,"nexus");assert.equal("token" in calls[0].value,false);
+});
+test("lost network responses time out with an indeterminate outcome",async()=>{
+  await assert.rejects(withTimeout(new Promise(()=>{}),5),/networkPending/);
+  assert.equal(await withTimeout(Promise.resolve("ok"),50),"ok");
 });
