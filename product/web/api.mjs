@@ -1,23 +1,53 @@
 // SPDX-License-Identifier: Apache-2.0
-import { normalizePreferences, serviceFor, validateHomeName, wifiOptions } from "./model.mjs";
+import {
+  normalizePreferences,
+  serviceFor,
+  validateHomeName,
+  wifiOptions,
+} from "./model.mjs";
 
 export function withTimeout(promise, milliseconds = 35000) {
   let timer;
-  return Promise.race([promise, new Promise((_, reject) => { timer = setTimeout(() => reject(new Error("networkPending")), milliseconds); })]).finally(() => clearTimeout(timer));
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      timer = setTimeout(
+        () => reject(new Error("networkPending")),
+        milliseconds
+      );
+    }),
+  ]).finally(() => clearTimeout(timer));
 }
 
 // The custom-panel host supplies the authenticated hass object. No separate tokens.
 export class NexusAPI {
-  constructor(getHass) { this.getHass = getHass; }
-  get hass() { const hass = this.getHass(); if (!hass?.connected) throw new Error("offline"); return hass; }
-  admin() { if (!this.hass.user?.is_admin) throw new Error("adminOnly"); }
+  constructor(getHass) {
+    this.getHass = getHass;
+  }
+  get hass() {
+    const hass = this.getHass();
+    if (!hass?.connected) throw new Error("offline");
+    return hass;
+  }
+  admin() {
+    if (!this.hass.user?.is_admin) throw new Error("adminOnly");
+  }
   async preferences() {
-    const result = await this.hass.callWS({ type: "frontend/get_user_data", key: "nexus" });
-    return normalizePreferences(result.value || {language: this.hass.language?.split("-")[0] || "en"});
+    const result = await this.hass.callWS({
+      type: "frontend/get_user_data",
+      key: "nexus",
+    });
+    return normalizePreferences(
+      result.value || { language: this.hass.language?.split("-")[0] || "en" }
+    );
   }
   async savePreferences(value) {
     const preferences = normalizePreferences(value);
-    await this.hass.callWS({ type: "frontend/set_user_data", key: "nexus", value: preferences });
+    await this.hass.callWS({
+      type: "frontend/set_user_data",
+      key: "nexus",
+      value: preferences,
+    });
     return preferences;
   }
   async registries() {
@@ -29,7 +59,13 @@ export class NexusAPI {
     ]);
     return { areas, entities, devices };
   }
-  async home(name) { this.admin(); await this.hass.callWS({ type: "config/core/update", location_name: validateHomeName(name) }); }
+  async home(name) {
+    this.admin();
+    await this.hass.callWS({
+      type: "config/core/update",
+      location_name: validateHomeName(name),
+    });
+  }
   async control(id) {
     const hass = this.hass;
     const action = serviceFor(hass.states[id]);
@@ -37,22 +73,50 @@ export class NexusAPI {
   }
   async network() {
     this.admin();
-    if (!this.hass.config.components.includes("hassio")) throw new Error("networkUnsupported");
-    return this.hass.callWS({ type: "supervisor/api", endpoint: "/network/info", method: "get" });
+    if (!this.hass.config.components.includes("hassio"))
+      throw new Error("networkUnsupported");
+    return this.hass.callWS({
+      type: "supervisor/api",
+      endpoint: "/network/info",
+      method: "get",
+    });
   }
   async scan(iface) {
     this.admin();
     const info = await this.network();
-    if (!info.interfaces.some((item) => item.interface === iface && item.type === "wireless")) throw new Error("noWifi");
-    return this.hass.callWS({ type: "supervisor/api", endpoint: `/network/interface/${encodeURIComponent(iface)}/accesspoints`, method: "get", timeout: null });
+    if (
+      !info.interfaces.some(
+        (item) => item.interface === iface && item.type === "wireless"
+      )
+    )
+      throw new Error("noWifi");
+    return this.hass.callWS({
+      type: "supervisor/api",
+      endpoint: `/network/interface/${encodeURIComponent(iface)}/accesspoints`,
+      method: "get",
+      timeout: null,
+    });
   }
   async connectWifi(iface, ssid, password, auth) {
     this.admin();
     const options = wifiOptions(ssid, password, auth);
     const info = await this.network();
-    if (!info.interfaces.some((item) => item.interface === iface && item.type === "wireless")) throw new Error("noWifi");
+    if (
+      !info.interfaces.some(
+        (item) => item.interface === iface && item.type === "wireless"
+      )
+    )
+      throw new Error("noWifi");
     // Never persist the PSK. Do not assume a returned command means connectivity.
-    await withTimeout(this.hass.callWS({ type: "supervisor/api", endpoint: `/network/interface/${encodeURIComponent(iface)}/update`, method: "post", data: options, timeout: null }));
+    await withTimeout(
+      this.hass.callWS({
+        type: "supervisor/api",
+        endpoint: `/network/interface/${encodeURIComponent(iface)}/update`,
+        method: "post",
+        data: options,
+        timeout: null,
+      })
+    );
     return this.network();
   }
 }

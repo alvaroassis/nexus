@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: [dev]
-    paths: ['product/**', '.github/workflows/nexus-image.yml']
+    paths: ["product/**", ".github/workflows/nexus-image.yml"]
 permissions:
   contents: read
 concurrency:
@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: "24"
       - run: node product/tools/check.mjs
       - run: node --test product/test/*.test.mjs
       - run: python3 -m unittest discover -s product/test -p '*_test.py'
@@ -44,7 +44,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: "24"
       - name: Build ARM64 image with pinned pi-gen
         run: bash product/image/build.sh
       - name: Verify image contents and real Home Assistant integration
