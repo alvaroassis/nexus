@@ -4,7 +4,7 @@ import tsconfigPaths from "vite-tsconfig-paths";
 export default defineConfig({
   plugins: [tsconfigPaths()],
   test: {
-    exclude: [...configDefaults.exclude, "test/e2e/**"],
+    exclude: [...configDefaults.exclude, "test/e2e/**", "product/**"],
     environment: "jsdom", // to run in browser-like environment
     env: {
       TZ: "Etc/UTC",

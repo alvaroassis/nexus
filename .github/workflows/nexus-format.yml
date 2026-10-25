@@ -1,0 +1,23 @@
+name: Nexus formatting maintenance
+on:
+  push:
+    branches: [dev]
+    paths: [".github/workflows/nexus-format.yml"]
+permissions:
+  contents: write
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Format Nexus source using repository conventions
+        run: |
+          npm install --prefix "$RUNNER_TEMP/nexus-format" prettier@3.9.10
+          "$RUNNER_TEMP/nexus-format/node_modules/.bin/prettier" --write product .github/workflows/nexus-image.yml
+          git add product .github/workflows/nexus-image.yml
+          if git diff --cached --quiet; then exit 0; fi
+          git -c user.name="Nexus maintenance" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "Format Nexus source with repository Prettier conventions"
+          git push origin HEAD:dev
