@@ -50,4 +50,8 @@ try {
   assert.equal(await page.getByRole("heading",{name:"Home administration",exact:true}).count(),0);
   assert.deepEqual(errors,[]);
   process.stdout.write("UI smoke passed: control, errors, language, setup, non-admin, touch viewport.\n");
+} catch (error) {
+  await page.screenshot({path:"product/qa/failure.png",fullPage:true});
+  process.stderr.write(`Browser errors: ${JSON.stringify(errors)}\n`);
+  throw error;
 } finally { await browser.close(); }

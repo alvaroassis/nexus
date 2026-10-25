@@ -207,6 +207,8 @@ export class NexusPanel extends HTMLElement {
       return;
     }
     const action = target.dataset.action;
+    // Let native submit buttons dispatch submit before replacing their form.
+    if (!action) return;
     if (action === "retry") { await this.initialize(); return; }
     if (action === "viewAll") { this.page = "devices"; this.area = ""; this.search = ""; }
     if (action === "setup") this.step = 0;

@@ -12,6 +12,7 @@ MOUNT="$(mktemp -d)"
 BOOT="$(mktemp -d)"
 CONFIG="$(mktemp -d)"
 LOOP="$(sudo losetup --find --show --read-only --partscan "$UNPACKED")"
+sudo udevadm settle
 cleanup() {
   docker rm -f nexus-ci-check >/dev/null 2>&1 || true
   sudo umount "$MOUNT" || true
@@ -29,7 +30,7 @@ sudo awk -F: '$1=="nexus" {if ($2 !~ /^!/) exit 1; found=1} END {if(!found)exit 
 ! sudo grep '^sudo:.*[, :]nexus\([, :]\|$\)' "$MOUNT/etc/group"
 sudo cp -a "$MOUNT/var/lib/nexus/homeassistant/." "$CONFIG/"
 sudo chmod -R a+rwX "$CONFIG"
-docker load --input "$MOUNT/opt/nexus/home-assistant.tar.gz"
+sudo docker load --input "$MOUNT/opt/nexus/home-assistant.tar.gz"
 test "$(docker image inspect ghcr.io/home-assistant/home-assistant:2026.10.4 --format '{{.Architecture}}')" = arm64
 docker run -d --name nexus-ci-check -p 127.0.0.1:18123:8123 -v "$CONFIG:/config" ghcr.io/home-assistant/home-assistant:2026.10.4
 READY=0

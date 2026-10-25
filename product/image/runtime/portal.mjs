@@ -4,7 +4,8 @@ const copy = {
   es:{language:"Idioma",title:"Bienvenido a tu nuevo hogar.",intro:"Elige tu idioma y conéctate a la red de tu hogar.",network:"Tu conexión",refresh:"Comprobar conexión",adapter:"Adaptador Wi-Fi",scan:"Buscar redes",ssid:"Nombre de la red",auth:"Seguridad",open:"Red abierta",password:"Contraseña de Wi-Fi",join:"Conectar",connected:"Conectado",disconnected:"Desconectado",noWifi:"No se detectó un adaptador Wi-Fi. Conecta un cable Ethernet al router.",waiting:"Iniciando Home Assistant. El primer inicio puede tardar varios minutos.",ready:"Home Assistant está listo.",continue:"Continuar a Nexus",account:"A continuación, crea tu cuenta de forma segura en Home Assistant. Si ya tienes una cuenta, inicia sesión. Selecciona Nexus en el menú lateral después de la configuración inicial.",keyboard:"Usa el teclado en pantalla para escribir. Conecta un teclado USB si la pantalla no reconoce la entrada táctil.",requested:"Conexión solicitada. Comprueba el estado antes de continuar.",networkFailed:"Falló la operación de red. Comprueba la contraseña, el adaptador y la conexión e inténtalo de nuevo.",invalidWifi:"Comprueba el nombre de red y la contraseña (8–63 caracteres para WPA).",busy:"Hay otra operación de red en curso.",confirm:"Cambiar el Wi-Fi puede desconectar el dispositivo. ¿Continuar?"}
 };
 const el=(id)=>document.getElementById(id);
-let language="en", token="", info={interfaces:[]}, ready=false;
+let language="en", token="", info={interfaces:[]}, ready=false, opened=false;
+try { opened=localStorage.getItem("nexus-initial-opened")==="true"; } catch {}
 try { const saved=localStorage.getItem("nexus-language");if(copy[saved]) language=saved; } catch {}
 const t=(key)=>copy[language][key]||copy[language].networkFailed;
 function render(){
@@ -33,7 +34,8 @@ el("wifi").addEventListener("submit",async(event)=>{
   const data=Object.fromEntries(new FormData(event.target));el("password").value="";el("join").disabled=true;
   try{await request("/join",data);el("message").textContent=t("requested");await status();}catch(error){el("message").textContent=t(error.message);}finally{data.password="";el("join").disabled=false;}
 });
-async function checkReady(){try{ready=(await request("/ready")).ready;render();}catch{}if(!ready)setTimeout(checkReady,3000);}
+el("continue").addEventListener("click",()=>{try{localStorage.setItem("nexus-initial-opened","true");}catch{}});
+async function checkReady(){try{ready=(await request("/ready")).ready;if(ready && opened && !new URLSearchParams(location.search).has("network")){location.replace("http://127.0.0.1:8123/nexus");return;}render();}catch{}if(!ready)setTimeout(checkReady,3000);}
 render();
 try{token=(await request("/session")).token;await status();}catch{el("message").textContent=t("networkFailed");}
 void checkReady();
