@@ -1,0 +1,16 @@
+[Unit]
+Description=Nexus Home Assistant Container
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=simple
+ExecStart=/opt/nexus/start-homeassistant.sh
+ExecStop=-/usr/bin/docker stop --time 30 nexus-homeassistant
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=0
+TimeoutStopSec=45
+
+[Install]
+WantedBy=multi-user.target

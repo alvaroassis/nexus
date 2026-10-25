@@ -1,0 +1,2 @@
+xserver-xorg xinit openbox lightdm chromium onboard dbus-x11
+docker.io python3 python3-dbus network-manager polkitd avahi-daemon curl

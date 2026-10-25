@@ -1,0 +1,9 @@
+// Only local, active kiosk sessions may change their own network connections.
+polkit.addRule(function(action, subject) {
+  if (subject.user === "nexus" && subject.local && subject.active && [
+    "org.freedesktop.NetworkManager.network-control",
+    "org.freedesktop.NetworkManager.settings.modify.own",
+    "org.freedesktop.NetworkManager.wifi.scan",
+    "org.freedesktop.NetworkManager.enable-disable-wifi"
+  ].indexOf(action.id) !== -1) return polkit.Result.YES;
+});

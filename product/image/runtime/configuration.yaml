@@ -1,0 +1,10 @@
+default_config:
+homeassistant:
+  name: My home
+panel_custom:
+  - name: nexus-panel
+    sidebar_title: Nexus
+    sidebar_icon: mdi:home-automation
+    url_path: nexus
+    module_url: /local/nexus/nexus-panel.mjs?v=0.1.0
+    require_admin: false

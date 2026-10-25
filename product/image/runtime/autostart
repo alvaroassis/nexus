@@ -1,0 +1,6 @@
+xset s off
+xset -dpms
+xset s noblank
+python3 /opt/nexus/portal.py &
+onboard &
+/opt/nexus/kiosk.sh &

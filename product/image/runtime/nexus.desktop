@@ -1,0 +1,5 @@
+[Desktop Entry]
+Name=Nexus
+Comment=Nexus touchscreen controller
+Exec=openbox-session
+Type=Application

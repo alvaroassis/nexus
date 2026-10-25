@@ -1,0 +1,39 @@
+name: Nexus Raspberry Pi 5 image
+on:
+  workflow_dispatch:
+  push:
+    branches: [dev]
+    paths: ['product/**', '.github/workflows/nexus-image.yml']
+permissions:
+  contents: read
+concurrency:
+  group: nexus-image
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node product/tools/check.mjs
+      - run: node --test product/test/*.test.mjs
+      - run: python3 -m unittest discover -s product/test -p '*_test.py'
+      - run: python3 -m py_compile product/image/runtime/portal.py
+      - run: find product/image -name '*.sh' -exec bash -n {} \;
+  image:
+    needs: validate
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build ARM64 image with pinned pi-gen
+        run: bash product/image/build.sh
+      - name: Upload flashable image and checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-rpi5-arm64-alpha
+          path: product/dist/*
+          if-no-files-found: error
+          retention-days: 14
