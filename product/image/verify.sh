@@ -37,6 +37,7 @@ test -f "$BOOT/kernel_2712.img"
 for file in opt/nexus/portal.py opt/nexus/home-assistant.tar.gz etc/systemd/system/nexus-homeassistant.service etc/lightdm/lightdm.conf.d/90-nexus.conf home/nexus/.config/openbox/autostart var/lib/nexus/homeassistant/www/nexus/nexus-panel.mjs; do echo "Checking $file"; sudo test -s "$MOUNT/$file"; done
 sudo awk -F: '$1=="nexus" {if ($2 !~ /^!/) exit 1; found=1} END {if(!found)exit 1}' "$MOUNT/etc/shadow"
 ! sudo grep '^sudo:.*[, :]nexus\([, :]\|$\)' "$MOUNT/etc/group"
+bash "$PRODUCT/image/test-installed-graphical.sh" "$MOUNT" "$PRODUCT/qa/installed"
 sudo cp -a "$MOUNT/var/lib/nexus/homeassistant/." "$CONFIG/"
 sudo chmod -R a+rwX "$CONFIG"
 sudo docker load --input "$MOUNT/opt/nexus/home-assistant.tar.gz"
@@ -63,5 +64,5 @@ root=pathlib.Path(sys.argv[1])/'.storage'
 assert json.loads((root/'core.config').read_text())['data']['location_name']=='Nexus verified home'
 assert any('"es"' in p.read_text() and '"nexus"' in p.read_text() for p in root.glob('frontend.user_data_*'))
 PY
-printf '%s\n' 'Image verification passed: checksum, XZ stream, Pi 5 boot files, kiosk payload, locked user, ARM64 backend, real API smoke and restart persistence.' > "$PRODUCT/dist/VERIFICATION.txt"
+printf '%s\n' 'Image verification passed: checksum, XZ stream, Pi 5 boot files, kiosk payload, shipped graphical userspace on virtual X11 (not Pi hardware boot), locked user, ARM64 backend, real API smoke and restart persistence.' > "$PRODUCT/dist/VERIFICATION.txt"
 cat "$PRODUCT/dist/VERIFICATION.txt"

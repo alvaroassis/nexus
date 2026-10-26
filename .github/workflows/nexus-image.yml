@@ -78,8 +78,16 @@ jobs:
           node-version: "24"
       - name: Build ARM64 image with pinned pi-gen
         run: bash product/image/build.sh
+      - name: Install virtual display verification tools
+        run: sudo apt-get update && sudo apt-get install -y xvfb xdotool x11-xserver-utils imagemagick
       - name: Verify image contents and real Home Assistant integration
         run: bash product/image/verify.sh
+      - name: Upload installed image graphical evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-installed-graphical-evidence
+          path: product/qa/installed/*
       - name: Upload flashable image and checksums
         uses: actions/upload-artifact@v4
         with:

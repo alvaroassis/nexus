@@ -36,7 +36,7 @@ Static checks do not prove graphical boot. The VC4 OutputClass selects the displ
 GPU by driver rather than unstable card numbers. It addresses a known Pi 5 Xorg
 configuration issue; confirmation on the actual tablet is still required.
 
-CI also launches the actual Openbox autostart, provisioning server and Chromium in
+CI also launches the shipped ARM64 userspace from the mounted image and its actual Openbox autostart, provisioning server and Chromium in
 virtual X11. This covers userspace startup, not firmware, HDMI, touch or speakers.
 At 90 and 240 seconds after boot, the device writes NEXUS-DIAGNOSTICS.txt on the SD
 boot partition. If the screen remains black, shut down before removing the card
