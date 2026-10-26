@@ -37,6 +37,7 @@ for _ in $(seq 1 90); do
   sleep 2
 done
 [[ "$READY" == 1 ]]
+[[ "$(docker exec nexus-installed-gui gsettings get org.onboard.window force-to-top)" == true ]]
 docker exec nexus-installed-gui curl -fsS http://127.0.0.1:8099/health
 import -window root "$EVIDENCE/installed-graphical-session.png"
 echo 'PASS: shipped ARM64 image userspace opened Nexus and Onboard on virtual X11.'

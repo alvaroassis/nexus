@@ -19,6 +19,7 @@ for _ in $(seq 1 90); do
   if xdotool search --onlyvisible --class chromium >/dev/null 2>&1 &&
      xdotool search --onlyvisible --name 'Nexus.*Welcome' >/dev/null 2>&1; then
     curl -fsS http://127.0.0.1:8099/health
+    [[ "$(gsettings get org.onboard.window force-to-top)" == true ]]
     pgrep -x onboard
     xdotool search --onlyvisible --class Onboard
     import -window root /evidence/graphical-session.png
