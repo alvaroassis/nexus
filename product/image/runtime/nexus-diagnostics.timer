@@ -1,0 +1,8 @@
+[Unit]
+Description=Capture Nexus graphical boot status
+[Timer]
+OnBootSec=90s
+OnBootSec=240s
+Unit=nexus-diagnostics.service
+[Install]
+WantedBy=timers.target

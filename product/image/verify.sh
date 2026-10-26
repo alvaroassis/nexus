@@ -26,6 +26,10 @@ cleanup() {
 trap cleanup EXIT
 sudo mount -o ro "${LOOP}p2" "$MOUNT"
 sudo mount -o ro "${LOOP}p1" "$BOOT"
+sudo test -s "$MOUNT/etc/X11/xorg.conf.d/99-nexus-vc4.conf"
+sudo grep -q 'MatchDriver "vc4"' "$MOUNT/etc/X11/xorg.conf.d/99-nexus-vc4.conf"
+sudo grep -q 'Option "PrimaryGPU" "true"' "$MOUNT/etc/X11/xorg.conf.d/99-nexus-vc4.conf"
+sudo test -s "$MOUNT/opt/nexus/diagnostics.sh"
 echo 'Checking Pi 5 boot files and installed payload'
 ls -l "$BOOT"
 test -f "$BOOT/bcm2712-rpi-5-b.dtb"

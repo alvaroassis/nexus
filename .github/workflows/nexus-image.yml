@@ -43,13 +43,24 @@ jobs:
           cp product/web/* "$RUNNER_TEMP/nexus-config/www/nexus/"
           docker run -d --name nexus-backend-check -p 127.0.0.1:18123:8123 -v "$RUNNER_TEMP/nexus-config:/config" ghcr.io/home-assistant/home-assistant:2026.10.4
           trap 'docker logs --tail 150 nexus-backend-check; docker rm -f nexus-backend-check' EXIT
-          for attempt in $(seq 1 120); do
+          for _ in $(seq 1 120); do
             if curl -fsS http://127.0.0.1:18123/api/onboarding >/dev/null; then break; fi
             sleep 2
           done
           node product/tools/smoke-backend.mjs
+  graphical:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test real kiosk startup in virtual X11
+        run: |
+          docker build -f product/image/graphical-test.Dockerfile -t nexus-graphical-test .
+          # Disposable CI container allows Chromium sandbox namespaces.
+          # Production Chromium retains its sandbox and has no added capabilities.
+          docker run --rm --cap-add SYS_ADMIN --security-opt seccomp=unconfined --shm-size=512m nexus-graphical-test
   image:
-    needs: validate
+    needs: [validate, graphical]
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 180
     steps:

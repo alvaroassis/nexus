@@ -24,7 +24,7 @@ jobs:
           set -euxo pipefail
           cd image
           sha256sum -c SHA256SUMS
-          xz -dk *.img.xz
+          xz -dk ./*.img.xz
           disk=$(find . -name '*.img' -print -quit)
           loop=$(sudo losetup --find --show --read-only --partscan "$disk")
           sudo udevadm settle
@@ -47,5 +47,6 @@ jobs:
           sudo cat rootfs/usr/lib/systemd/system/lightdm.service
           sudo find rootfs/etc/systemd/system/getty@tty1.service.d -type f -exec cat {} \; || true
           sudo chroot rootfs dpkg-query -W lightdm xserver-xorg-core xserver-xorg-input-libinput xserver-xorg-video-fbdev x11-xserver-utils xauth python3-xdg chromium openbox || true
+          sudo find rootfs/etc/X11/xorg.conf.d rootfs/usr/share/X11/xorg.conf.d -type f -exec sh -c 'echo "$1"; cat "$1"' sh {} \;
           cat boot/config.txt
           cat boot/cmdline.txt

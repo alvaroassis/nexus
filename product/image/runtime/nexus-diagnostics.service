@@ -1,0 +1,8 @@
+[Unit]
+Description=Nexus graphical boot diagnostics
+After=local-fs.target
+ConditionPathIsMountPoint=/boot/firmware
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /opt/nexus/diagnostics.sh
+UMask=0077
