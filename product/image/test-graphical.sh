@@ -22,6 +22,7 @@ for _ in $(seq 1 90); do
     [[ "$(gsettings get org.onboard.window force-to-top)" == true ]]
     pgrep -x onboard
     xdotool search --onlyvisible --class Onboard
+    sleep 3
     import -window root /evidence/graphical-session.png
     echo 'PASS: Openbox autostart launched portal and visible Chromium Nexus window.'
     exit 0

@@ -7,7 +7,7 @@ xset s noblank
 python3 /opt/nexus/portal.py &
 # Keep the keyboard reachable above Chromium's fullscreen window.
 gsettings set org.onboard.window force-to-top true
-gsettings set org.onboard.window docking-enabled true
+gsettings set org.onboard.window docking-enabled false
 gsettings set org.onboard.icon-palette in-use true
 onboard &
 /opt/nexus/kiosk.sh &
