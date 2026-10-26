@@ -28,7 +28,7 @@ The script checks out the official pi-gen ARM64 commit `d346cd53562b3c6b4f94c915
 - Ethernet is recommended for first testing. The Pi 5 Wi-Fi adapter is detected through NetworkManager. Build defaults use the US regulatory domain; change `WPA_COUNTRY` for another country before building.
 - A USB keyboard is a recovery option while touch/on-screen keyboard behavior is validated.
 
-Boot sequence: local touchscreen portal → language → Ethernet/Wi-Fi → Home Assistant owner-account onboarding → Nexus setup (home name and devices) → dashboard. The portal waits for the preloaded backend; internet is not needed just to start it. Device integrations may need internet. After initial Home Assistant onboarding, choose **Nexus** in the sidebar if Home Assistant opens its default dashboard. On subsequent boots, the portal's Continue button opens `/nexus`.
+Boot sequence: local touchscreen portal → language → Ethernet/Wi-Fi → Home Assistant owner-account onboarding → Nexus setup (home name and devices) → dashboard. The portal waits for the preloaded backend; internet is not needed just to start it. Device integrations may need internet. After initial Home Assistant onboarding, choose **Nexus** in the sidebar if Home Assistant opens its default dashboard. On subsequent boots, the portal automatically opens `/nexus` once Home Assistant is ready. Open `http://127.0.0.1:8099/?network=1` on the device to return to network setup.
 
 ## Included behavior
 
@@ -75,3 +75,7 @@ Back up Home Assistant before upgrades (native backup UI when available, or stop
 - https://networkmanager.dev/docs/api/latest/spec.html
 
 Upstream license and notices are preserved at repository root. New product modules use Apache-2.0 SPDX identifiers where applicable. No changes are submitted to the upstream Home Assistant project by this work.
+
+## Automated image verification
+
+The workflow tests the custom panel against a disposable Home Assistant instance before building. It then checks the compressed image checksum, Pi 5 boot files, installed kiosk payload, and account restrictions, and repeats the real API test using the ARM64 backend bundled in the image. Restart persistence is checked separately. A successful run includes `VERIFICATION.txt`; physical boot, display, touch, and Wi-Fi still require the hardware acceptance checks above.
