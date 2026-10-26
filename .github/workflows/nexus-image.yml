@@ -23,6 +23,11 @@ jobs:
       - run: python3 -m unittest discover -s product/test -p '*_test.py'
       - run: python3 -m py_compile product/image/runtime/portal.py
       - run: find product/image -name '*.sh' -exec bash -n {} \;
+      - name: Use the primary Ubuntu mirror for test dependencies
+        run: |
+          # Azure mirror downloads timed out repeatedly on the hosted runner.
+          sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt
+          printf '%s\n' 'Acquire::http::Timeout "20";' 'Acquire::https::Timeout "20";' 'Acquire::Retries "2";' | sudo tee /etc/apt/apt.conf.d/80-nexus-ci
       - name: Install isolated browser test dependency
         timeout-minutes: 8
         env:
