@@ -1,0 +1,51 @@
+name: Inspect Nexus graphical boot
+on:
+  workflow_dispatch:
+  push:
+    branches: [dev]
+    paths: [".github/workflows/nexus-inspect.yml"]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: nexus-rpi5-arm64-alpha
+          run-id: 40311121640
+          github-token: ${{ github.token }}
+          path: image
+      - name: Inspect the shipped image, not the source template
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cd image
+          sha256sum -c SHA256SUMS
+          xz -dk *.img.xz
+          disk=$(find . -name '*.img' -print -quit)
+          loop=$(sudo losetup --find --show --read-only --partscan "$disk")
+          sudo udevadm settle
+          mkdir rootfs boot
+          sudo mount -o ro "${loop}p2" rootfs
+          sudo mount -o ro "${loop}p1" boot
+          trap 'sudo umount rootfs; sudo umount boot; sudo losetup -d "$loop"' EXIT
+          sudo chroot rootfs /usr/sbin/lightdm --show-config
+          sudo cat rootfs/etc/pam.d/lightdm-autologin
+          sudo cat rootfs/etc/X11/default-display-manager
+          sudo cat rootfs/etc/X11/Xsession.options
+          sudo cat rootfs/etc/X11/Xwrapper.config || true
+          sudo ls -l rootfs/usr/bin/openbox-session rootfs/etc/X11/Xsession rootfs/usr/share/xsessions/nexus.desktop
+          sudo cat rootfs/usr/bin/openbox-session
+          sudo cat rootfs/usr/lib/aarch64-linux-gnu/openbox-autostart || true
+          sudo ls -ld rootfs/home/nexus rootfs/home/nexus/.config
+          sudo cat rootfs/home/nexus/.config/openbox/autostart
+          sudo cat rootfs/etc/systemd/system/default.target || true
+          sudo ls -l rootfs/etc/systemd/system/display-manager.service
+          sudo cat rootfs/usr/lib/systemd/system/lightdm.service
+          sudo find rootfs/etc/systemd/system/getty@tty1.service.d -type f -exec cat {} \; || true
+          sudo chroot rootfs dpkg-query -W lightdm xserver-xorg-core xserver-xorg-input-libinput xserver-xorg-video-fbdev x11-xserver-utils xauth python3-xdg chromium openbox || true
+          cat boot/config.txt
+          cat boot/cmdline.txt
