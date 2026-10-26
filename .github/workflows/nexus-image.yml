@@ -36,6 +36,18 @@ jobs:
         with:
           name: nexus-ui-evidence
           path: product/qa/*
+      - name: Verify real backend before building image
+        run: |
+          mkdir -p "$RUNNER_TEMP/nexus-config/www/nexus"
+          cp product/image/runtime/configuration.yaml "$RUNNER_TEMP/nexus-config/"
+          cp product/web/* "$RUNNER_TEMP/nexus-config/www/nexus/"
+          docker run -d --name nexus-backend-check -p 127.0.0.1:18123:8123 -v "$RUNNER_TEMP/nexus-config:/config" ghcr.io/home-assistant/home-assistant:2026.10.4
+          trap 'docker logs --tail 150 nexus-backend-check; docker rm -f nexus-backend-check' EXIT
+          for attempt in $(seq 1 120); do
+            if curl -fsS http://127.0.0.1:18123/api/onboarding >/dev/null; then break; fi
+            sleep 2
+          done
+          node product/tools/smoke-backend.mjs
   image:
     needs: validate
     runs-on: ubuntu-24.04-arm

@@ -99,7 +99,13 @@ try {
     const result = await fetch(origin + "/local/nexus/" + file);
     assert.equal(result.status, 200, file);
   }
-  const panels = await callWS({ type: "get_panels" });
+  // HTTP and authentication can be available before integrations finish setup.
+  let panels;
+  for (let attempt = 0; attempt < 60; attempt++) {
+    panels = await callWS({ type: "get_panels" });
+    if (panels.nexus) break;
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
   assert.ok(panels.nexus, "Custom Nexus panel must be registered");
   process.stdout.write(
     "Real Home Assistant smoke passed: owner onboarding, token exchange, WebSocket, persisted preferences, home name, registries, panel registration and assets.\n"

@@ -15,6 +15,8 @@ CONFIG="$(mktemp -d)"
 LOOP="$(sudo losetup --find --show --read-only --partscan "$UNPACKED")"
 sudo udevadm settle
 cleanup() {
+  local result=$?
+  if [[ "$result" != 0 ]]; then docker logs --tail 150 nexus-ci-check || true; fi
   docker rm -f nexus-ci-check >/dev/null 2>&1 || true
   sudo umount "$MOUNT" || true
   sudo umount "$BOOT" || true
