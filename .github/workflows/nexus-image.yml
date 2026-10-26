@@ -12,6 +12,7 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,6 +24,10 @@ jobs:
       - run: python3 -m py_compile product/image/runtime/portal.py
       - run: find product/image -name '*.sh' -exec bash -n {} \;
       - name: Install isolated browser test dependency
+        timeout-minutes: 8
+        env:
+          NPM_CONFIG_FETCH_TIMEOUT: "60000"
+          NPM_CONFIG_FETCH_RETRIES: "1"
         run: |
           npm install --prefix "$RUNNER_TEMP/nexus-qa" playwright@1.62.1
           "$RUNNER_TEMP/nexus-qa/node_modules/.bin/playwright" install --with-deps chromium
