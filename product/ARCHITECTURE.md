@@ -43,6 +43,7 @@ boot partition. If the screen remains black, shut down before removing the card
 and read the report on another computer. Credentials and HA logs are excluded.
 
 Sources:
+
 - https://developers.home-assistant.io/docs/auth_api/
 - https://developers.home-assistant.io/docs/api/websocket/
 - https://docs.voidlinux.org/installation/guides/arm-devices/raspberry-pi.html

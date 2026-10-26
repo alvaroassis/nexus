@@ -8,7 +8,7 @@ permissions:
   contents: read
 concurrency:
   group: nexus-image
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   validate:
     runs-on: ubuntu-24.04
@@ -58,7 +58,15 @@ jobs:
           docker build -f product/image/graphical-test.Dockerfile -t nexus-graphical-test .
           # Disposable CI container allows Chromium sandbox namespaces.
           # Production Chromium retains its sandbox and has no added capabilities.
-          docker run --rm --cap-add SYS_ADMIN --security-opt seccomp=unconfined --shm-size=512m nexus-graphical-test
+          mkdir -p product/qa/graphical
+          chmod 777 product/qa/graphical
+          docker run -v "$PWD/product/qa/graphical:/evidence" --rm --cap-add SYS_ADMIN --security-opt seccomp=unconfined --shm-size=512m nexus-graphical-test
+      - name: Upload graphical session evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-graphical-evidence
+          path: product/qa/graphical/*
   image:
     needs: [validate, graphical]
     runs-on: ubuntu-24.04-arm
@@ -75,7 +83,7 @@ jobs:
       - name: Upload flashable image and checksums
         uses: actions/upload-artifact@v4
         with:
-          name: nexus-rpi5-arm64-alpha
+          name: nexus-rpi5-arm64-alpha2
           path: product/dist/*
           if-no-files-found: error
           retention-days: 14
