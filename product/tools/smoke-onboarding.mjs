@@ -75,6 +75,15 @@ try {
  await shot("08-touch-800x480");
  const server=JSON.parse(await readFile(process.env.NEXUS_STATE_DIR+"/session.json","utf8"));
  assert.ok(server.refresh);assert.ok(server.cookie);assert.ok(!JSON.stringify(server).includes(password));
+ // A regular user must enter management, not be trapped in owner-only setup.
+ const regular={...result,user:{...result.user,is_admin:false,is_owner:false},preferences:{language:"pt",setup:false}};
+ await page.route("**/state",route=>route.fulfill({json:{ready:true,authenticated:true,new:false,...regular}}));
+ await page.route("**/app/snapshot",route=>route.fulfill({json:regular}));
+ await page.reload();
+ await page.getByRole("heading",{name:"Casa Nexus",exact:true}).waitFor();
+ await page.getByRole("button",{name:"Configurações",exact:true}).click();
+ assert.equal(await page.getByRole("button",{name:"Casa e região",exact:true}).count(),0);
+ await page.unroute("**/state");await page.unroute("**/app/snapshot");
  await context.storageState({path:process.env.NEXUS_STATE_DIR+"/browser-test.json"});
  await chmod(process.env.NEXUS_STATE_DIR+"/browser-test.json",0o600);
  assert.deepEqual(errors,[]);

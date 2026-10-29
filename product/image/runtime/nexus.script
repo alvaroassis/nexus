@@ -7,10 +7,10 @@ logo.SetY(Window.GetHeight() / 2 - logo_image.GetHeight() / 2);
 dot_image = Image.Text("•", 0.79, 0.91, 0.64, 1, "DejaVu Sans 24");
 dot = Sprite(dot_image);
 dot.SetY(Window.GetHeight() / 2 + 65);
-phase = 0;
+global.phase = 0;
 fun refresh() {
-  phase += 0.04;
-  dot.SetX(Window.GetWidth() / 2 + Math.Sin(phase) * 36 - dot_image.GetWidth() / 2);
-  logo.SetOpacity(0.85 + Math.Sin(phase) * 0.15);
+  global.phase += 0.04;
+  dot.SetX(Window.GetWidth() / 2 + Math.Sin(global.phase) * 36 - dot_image.GetWidth() / 2);
+  logo.SetOpacity(0.85 + Math.Sin(global.phase) * 0.15);
 }
 Plymouth.SetRefreshFunction(refresh);

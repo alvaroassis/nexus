@@ -185,7 +185,7 @@ document.addEventListener("submit",e=>{
    try{result=await request(fresh?"/app/owner":"/app/login",{...data,language:draft.language,flow})}finally{data.password="";data.confirmation=""}
    if(result.flow){flow=result.flow;render();if(result.invalid)message("authFailed");return}
    flow="";state=await request("/state");
-   if(state.preferences?.setup){await loadDashboard();go("dashboard")}else go("home");
+   if(state.preferences?.setup||!state.user?.is_admin){await loadDashboard();go("dashboard")}else go("home");
   }
   if(form.id==="home-form"){draft.home=data.home;saveDraft();message("saving");await request("/app/finish",draft);editing=false;go("done")}
   if(form.id==="detail-form"){await request("/app/control",{entity_id:form.dataset.entity,service:form.dataset.service,value:Number(data.value)});$("details").close();await loadDashboard();render()}
@@ -204,7 +204,7 @@ async function boot(){
    await new Promise(r=>setTimeout(r,2000));
   }
   if(page==="boot"){
-   if(state.authenticated&&state.preferences?.setup){await loadDashboard();go("dashboard")}
+   if(state.authenticated&&(state.preferences?.setup||!state.user?.is_admin)){await loadDashboard();go("dashboard")}
    else if(state.authenticated)go("language");
    else go(state.new?"language":"login");
   }
