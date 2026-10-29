@@ -77,7 +77,8 @@ export const copy = {
     "play": "Play / pause",
     "volume": "Volume",
     "step": "Step",
-    "saving": "Saving your home…"
+    "saving": "Saving your home…",
+    "keyboard": "Keyboard"
   },
   "pt": {
     "language": "Sinta-se em casa.",
@@ -157,7 +158,8 @@ export const copy = {
     "play": "Reproduzir / pausar",
     "volume": "Volume",
     "step": "Etapa",
-    "saving": "Salvando sua casa…"
+    "saving": "Salvando sua casa…",
+    "keyboard": "Teclado"
   },
   "es": {
     "language": "Siéntete en casa.",
@@ -237,6 +239,7 @@ export const copy = {
     "play": "Reproducir / pausar",
     "volume": "Volumen",
     "step": "Paso",
-    "saving": "Guardando tu hogar…"
+    "saving": "Guardando tu hogar…",
+    "keyboard": "Teclado"
   }
 };

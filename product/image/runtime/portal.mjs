@@ -33,6 +33,7 @@ function regionFields(){
 function footer(previous,next="next",key="next"){return '<div class="actions">'+(previous?button(previous,"back","secondary back"):"")+button(next,key)+'</div>'}
 function render(){
  document.documentElement.lang=draft.language;
+ $("keyboard-button").hidden=page==="boot";$("keyboard-button").ariaLabel=t("keyboard");
  $("app").className=page==="dashboard"?"dashboard":"";
  const steps=["language","region","network","account","home","done"];
  const index=steps.indexOf(page);
@@ -123,6 +124,7 @@ document.addEventListener("click",e=>{
  if(b.dataset.lang){draft.language=b.dataset.lang;saveDraft();render();return}
  const action=b.dataset.action;if(!action)return;
  void run(async()=>{
+ if(action==="keyboard")await request("/keyboard",{});
  if(["language","region","network"].includes(action)){go(action);if(action==="network")await refreshNetwork()}
  if(action==="next"){
    if(editing&&page==="language"){await request("/app/preferences",{language:draft.language});await loadDashboard();go("dashboard");editing=false}

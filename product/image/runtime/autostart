@@ -10,5 +10,8 @@ python3 /opt/nexus/portal.py &
 gsettings set org.onboard.window force-to-top true
 gsettings set org.onboard.window docking-enabled false
 gsettings set org.onboard.icon-palette in-use true
+gsettings set org.gnome.desktop.interface toolkit-accessibility true
+gsettings set org.onboard.auto-show enabled true
+gsettings set org.onboard start-minimized true
 onboard &
 /opt/nexus/kiosk.sh &

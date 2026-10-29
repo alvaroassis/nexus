@@ -21,6 +21,14 @@ for _ in $(seq 1 90); do
     curl -fsS http://127.0.0.1:8099/health
     [[ "$(gsettings get org.onboard.window force-to-top)" == true ]]
     pgrep -x onboard
+    python3 - <<'PY'
+import json, urllib.request
+origin="http://127.0.0.1:8099"
+token=json.load(urllib.request.urlopen(origin+"/session"))["token"]
+req=urllib.request.Request(origin+"/keyboard",data=b'{"show":true}',headers={"Content-Type":"application/json","Origin":origin,"X-Nexus-Token":token})
+assert json.load(urllib.request.urlopen(req))["ok"]
+PY
+    sleep 1
     xdotool search --onlyvisible --class Onboard
     sleep 3
     import -window root /evidence/graphical-session.png

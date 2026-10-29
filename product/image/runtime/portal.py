@@ -176,6 +176,20 @@ class Handler(BaseHTTPRequestHandler):
                 raise ValueError()
         except (ValueError, UnicodeError):
             self.reply(400, {"error": "invalidWifi"}); return
+        if self.path == "/keyboard":
+            try:
+                import dbus
+                bus = dbus.SessionBus(private=True)
+                keyboard = dbus.Interface(bus.get_object("org.onboard.Onboard", "/org/onboard/Onboard/Keyboard"), "org.onboard.Onboard.Keyboard")
+                if data.get("show") is True:
+                    keyboard.Show()
+                else:
+                    keyboard.ToggleVisible()
+                bus.close()
+                self.reply(200, {"ok": True})
+            except Exception:
+                self.reply(503, {"error": "invalid"})
+            return
         if self.path.startswith("/app/"):
             try:
                 result, cookie = backend.perform(self.path[5:], data, self.cookie())
