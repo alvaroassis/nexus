@@ -73,7 +73,7 @@ function dashboard(){
  if(!online)body+='<p role="status">'+t("connectionLost")+'</p>';
  if(tab==="settings")return body+'<div class="cards"><section class="card"><h2>'+esc(snapshot.user.name)+'</h2><p>'+esc(snapshot.config.time_zone)+'</p>'+button("logout","logout","secondary")+'</section><section class="card"><h2>'+t("settings")+'</h2><div class="choices">'+button("edit-language","languageHelp","secondary")+(snapshot.user.is_admin?button("edit-region","homeSettings","secondary")+button("edit-network","networkSettings","secondary"):"")+'</div></section></div>';
  const favorites=snapshot.preferences.favorites||[];
- const hidden=new Set(snapshot.entities.filter(e=>e.hidden_by||e.disabled_by||e.entity_category).map(e=>e.entity_id));
+ const hidden=new Set(snapshot.entities.filter(e=>e.hidden_by||e.disabled_by||e.entity_category||e.platform==="backup").map(e=>e.entity_id));
  const registry=new Map(snapshot.entities.map(e=>[e.entity_id,e]));
  const devices=new Map((snapshot.devices||[]).map(d=>[d.id,d]));
  const areaOf=id=>{const e=registry.get(id);return e?.area_id||devices.get(e?.device_id)?.area_id};

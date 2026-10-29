@@ -50,6 +50,7 @@ try {
  await page.getByRole("button",{name:"Abrir minha casa",exact:true}).click();
  await page.getByRole("heading",{name:"Casa Nexus",exact:true}).waitFor();
  await shot("07-dashboard");
+ assert.doesNotMatch(await page.locator("#app").innerText(),/Backup Manager|backup manager/i);
  const result=await page.evaluate(async()=>{
   const token=(await(await fetch("/session")).json()).token;
   return (await(await fetch("/app/snapshot",{method:"POST",headers:{"Content-Type":"application/json","X-Nexus-Token":token},body:"{}"})).json());
