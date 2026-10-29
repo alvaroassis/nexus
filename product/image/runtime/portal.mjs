@@ -22,7 +22,7 @@ async function run(fn) {
   try{await fn()}catch(e){message(e.message==="signIn"?"authFailed":e.message)}
   finally{busy=false;buttons.forEach(([b,disabled])=>{if(b.isConnected)b.disabled=disabled})}
 }
-function go(next){page=next;message("");render();$("app").focus();saveDraft()}
+function go(next){page=next;message("");render();$("app").focus();if(!matchMedia("(prefers-reduced-motion: reduce)").matches)$("app").animate([{opacity:0,transform:"translateY(8px)"},{opacity:1,transform:"none"}],{duration:220});saveDraft()}
 function regionFields(){
   const names=new Intl.DisplayNames([draft.language],{type:"region"});
   const countries=Object.keys(regions).sort((a,b)=>names.of(a).localeCompare(names.of(b),draft.language));
@@ -72,11 +72,14 @@ function dashboard(){
  if(!online)body+='<p role="status">'+t("connectionLost")+'</p>';
  if(tab==="settings")return body+'<div class="cards"><section class="card"><h2>'+esc(snapshot.user.name)+'</h2><p>'+esc(snapshot.config.time_zone)+'</p>'+button("logout","logout","secondary")+'</section><section class="card"><h2>'+t("settings")+'</h2><div class="choices">'+button("edit-language","languageHelp","secondary")+(snapshot.user.is_admin?button("edit-region","homeSettings","secondary")+button("edit-network","networkSettings","secondary"):"")+'</div></section></div>';
  const favorites=snapshot.preferences.favorites||[];
- const hidden=new Set(snapshot.entities.filter(e=>e.hidden_by||e.disabled_by).map(e=>e.entity_id));
+ const hidden=new Set(snapshot.entities.filter(e=>e.hidden_by||e.disabled_by||e.entity_category).map(e=>e.entity_id));
  const registry=new Map(snapshot.entities.map(e=>[e.entity_id,e]));
+ const devices=new Map((snapshot.devices||[]).map(d=>[d.id,d]));
+ const areaOf=id=>{const e=registry.get(id);return e?.area_id||devices.get(e?.device_id)?.area_id};
  let entities=snapshot.states.filter(e=>!hidden.has(e.entity_id)&&["light","switch","fan","climate","cover","sensor","binary_sensor","media_player","scene"].includes(e.entity_id.split(".")[0]));
  if(tab==="dashboard"&&favorites.length)entities=entities.filter(e=>favorites.includes(e.entity_id));
- if(room)entities=entities.filter(e=>registry.get(e.entity_id)?.area_id===room);
+ if(tab==="dashboard"&&!favorites.length)entities=entities.filter(e=>e.attributes.device_class!=="timestamp");
+ if(room)entities=entities.filter(e=>areaOf(e.entity_id)===room);
  body+='<label>'+t("all")+'<select id="room"><option value="">'+t("all")+'</option>'+snapshot.areas.map(a=>'<option value="'+esc(a.area_id)+'" '+(room===a.area_id?"selected":"")+'>'+esc(a.name)+'</option>').join("")+'</select></label>';
  if(!entities.length)return body+'<section class="card"><h2>'+t("empty")+'</h2><p>'+t("emptyHelp")+'</p></section>';
  return body+'<div class="cards">'+entities.map(e=>{
@@ -178,7 +181,7 @@ document.addEventListener("submit",e=>{
    form.querySelectorAll('input[type="password"]').forEach(n=>n.value="");
    let result;
    try{result=await request(fresh?"/app/owner":"/app/login",{...data,language:draft.language,flow})}finally{data.password="";data.confirmation=""}
-   if(result.flow){flow=result.flow;render();return}
+   if(result.flow){flow=result.flow;render();if(result.invalid)message("authFailed");return}
    flow="";state=await request("/state");
    if(state.preferences?.setup){await loadDashboard();go("dashboard")}else go("home");
   }

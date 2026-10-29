@@ -75,6 +75,16 @@ jobs:
             sleep 2
           done
           NEXUS_PLAYWRIGHT="$RUNNER_TEMP/nexus-qa/node_modules/playwright/index.mjs" node product/tools/smoke-onboarding.mjs
+          kill "$PORTAL_PID"
+          wait "$PORTAL_PID" || true
+          docker restart nexus-onboarding-check
+          for _ in $(seq 1 120); do
+            if curl -fsS http://127.0.0.1:18123/ >/dev/null; then break; fi
+            sleep 2
+          done
+          python3 product/test/serve_portal_fixture.py &
+          PORTAL_PID=$!
+          NEXUS_PLAYWRIGHT="$RUNNER_TEMP/nexus-qa/node_modules/playwright/index.mjs" node product/tools/smoke-onboarding.mjs --resume
       - name: Upload Nexus onboarding evidence
         if: always()
         uses: actions/upload-artifact@v4

@@ -48,7 +48,8 @@ def request(path, data=None, token=None, form=False):
     body = (urllib.parse.urlencode(data).encode() if form else json.dumps(data).encode()) if data is not None else None
     try:
         with HTTP.open(urllib.request.Request(BASE + path, data=body, headers=headers), timeout=30) as response:
-            return json.load(response)
+            body = response.read()
+            return json.loads(body) if body else {}
     except urllib.error.HTTPError as error:
         raise Failure("signIn" if error.code in (401, 403) else "invalid", error.code) from None
     except (OSError, ValueError):
@@ -187,10 +188,10 @@ def perform(action, data, cookie):
             result = request("/auth/login_flow/" + flow_id, fields | {"client_id": CLIENT})
             if result["type"] == "create_entry":
                 return {"ok": True}, establish(result["result"])
-            if result.get("step_id") == "mfa" and not result.get("errors"):
+            if result.get("step_id") == "mfa":
                 key = secrets.token_urlsafe(32)
                 FLOW[key] = (flow_id, now + 180)
-                return {"flow": key}, None
+                return {"flow": key, "invalid": bool(result.get("errors"))}, None
             raise Failure("signIn", 401)
         state = authenticated(cookie)
         if action == "logout":
@@ -201,11 +202,11 @@ def perform(action, data, cookie):
                 ACCESS.clear()
             return {"ok": True}, ""
         if action == "snapshot":
-            user, config, states, areas, entities, prefs = ws(state, [
+            user, config, states, areas, entities, devices, prefs = ws(state, [
                 {"type": "auth/current_user"}, {"type": "get_config"}, {"type": "get_states"},
-                {"type": "config/area_registry/list"}, {"type": "config/entity_registry/list"},
+                {"type": "config/area_registry/list"}, {"type": "config/entity_registry/list"}, {"type": "config/device_registry/list"},
                 {"type": "frontend/get_user_data", "key": "nexus"}])
-            return {"user": user, "config": config, "states": states, "areas": areas, "entities": entities, "preferences": prefs.get("value") or {}}, None
+            return {"user": user, "config": config, "states": states, "areas": areas, "entities": entities, "devices": devices, "preferences": prefs.get("value") or {}}, None
         if action == "finish":
             country, zone = validate_region(data)
             name = data.get("home", "").strip()

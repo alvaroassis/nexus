@@ -1,18 +1,26 @@
 import assert from "node:assert/strict";
-import {mkdir,readFile} from "node:fs/promises";
+import {mkdir,readFile,chmod} from "node:fs/promises";
 import {pathToFileURL} from "node:url";
 const {chromium}=await import(pathToFileURL(process.env.NEXUS_PLAYWRIGHT));
 const browser=await chromium.launch();
-const page=await browser.newPage({viewport:{width:1280,height:800}});
+const resume=process.argv.includes("--resume");
+const context=await browser.newContext({viewport:{width:1280,height:800},...(resume?{storageState:process.env.NEXUS_STATE_DIR+"/browser-test.json"}:{})});
+const page=await context.newPage();
 const password="Nexus-CI-"+crypto.randomUUID();
 const errors=[];
 page.on("pageerror",e=>errors.push(e.message));
 await mkdir("product/qa/onboarding",{recursive:true});
 async function shot(name){
  assert.doesNotMatch(await page.locator("body").innerText(),/home assistant|home assist\b/i);
- await page.screenshot({path:"product/qa/onboarding/"+name+".png",fullPage:true});
+ await page.screenshot({path:"product/qa/onboarding/"+name+".png",fullPage:true,animations:"disabled"});
 }
 try {
+ if(resume){
+  await page.goto("http://127.0.0.1:8099");
+  await page.getByRole("heading",{name:"Casa Nexus",exact:true}).waitFor({timeout:60000});
+  await shot("09-restart");
+  process.stdout.write("PASS: authenticated dashboard restored after core and portal restart.\n");
+ }else{
  await page.goto("http://127.0.0.1:8099");
  await page.getByRole("button",{name:"Português",exact:true}).click();
  await shot("01-language");
@@ -66,6 +74,9 @@ try {
  await shot("08-touch-800x480");
  const server=JSON.parse(await readFile(process.env.NEXUS_STATE_DIR+"/session.json","utf8"));
  assert.ok(server.refresh);assert.ok(server.cookie);assert.ok(!JSON.stringify(server).includes(password));
+ await context.storageState({path:process.env.NEXUS_STATE_DIR+"/browser-test.json"});
+ await chmod(process.env.NEXUS_STATE_DIR+"/browser-test.json",0o600);
  assert.deepEqual(errors,[]);
  process.stdout.write("PASS: real owner creation, country/timezone, onboarding completion, native dashboard, reload, logout/login, failed login, Wi-Fi recovery and secret isolation.\n");
+ }
 }finally{await browser.close()}
