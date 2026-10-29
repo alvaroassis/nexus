@@ -34,7 +34,7 @@ async function visibleField(locator){
 try{
  await page.route("http://nexus.test/**",async route=>{
   const name=new URL(route.request().url()).pathname;
-  const fixtures={"/session":{token:"test-only"},"/state":{ready:true,new:true,authenticated:false},"/regions":{US:["America/New_York"],BR:["America/Sao_Paulo"]},"/network":{interfaces:[{interface:"eth0",type:"ethernet",connected:true}]}};
+  const fixtures={"/session":{token:"test-only"},"/state":{ready:true,new:true,authenticated:false},"/regions":{US:["America/New_York"],BR:["America/Sao_Paulo"]},"/network":{interfaces:[{interface:"eth0",type:"ethernet",connected:true},{interface:"wlan0",type:"wireless",connected:false}]},"/scan":{accesspoints:[{ssid:"Nexus test Wi-Fi",signal:90}]}};
   if(fixtures[name])return route.fulfill({json:fixtures[name]});
   const file=name==="/"?"portal.html":name.slice(1);
   if(!["portal.html","portal.css","portal.mjs","copy.mjs","keyboard.mjs"].includes(file))return route.fulfill({status:404,body:""});
@@ -44,6 +44,11 @@ try{
  await page.getByRole("button",{name:"Português",exact:true}).tap();
  await page.getByRole("button",{name:"Avançar",exact:true}).tap();
  await page.getByRole("button",{name:"Avançar",exact:true}).tap();
+ await page.getByRole("button",{name:"Buscar redes",exact:true}).tap();
+ await page.waitForFunction(()=>document.querySelector('#networks option')?.value==='Nexus test Wi-Fi');
+ await page.getByLabel("Nome da rede",{exact:true}).tap();
+ await soft("nexus");assert.equal(await page.getByLabel("Nome da rede",{exact:true}).inputValue(),"nexus");
+ await key("Recolher teclado").tap();
  await page.getByRole("button",{name:"Avançar",exact:true}).tap();
  const name=page.getByLabel("Seu nome",{exact:true});
  await name.tap();

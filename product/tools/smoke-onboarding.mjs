@@ -30,6 +30,7 @@ try {
  await shot("02-region");
  await page.getByRole("button",{name:"Avançar",exact:true}).click();
  await page.getByRole("button",{name:"Buscar redes",exact:true}).click();
+ await page.waitForFunction(()=>document.querySelector("#networks option")?.value==="Nexus test Wi-Fi");
  await page.getByLabel("Nome da rede",{exact:true}).fill("Nexus test Wi-Fi");
  await page.getByLabel("Senha",{exact:true}).fill("incorrect-password");
  await page.getByRole("button",{name:"Conectar",exact:true}).click();
@@ -89,4 +90,8 @@ try {
  assert.deepEqual(errors,[]);
  process.stdout.write("PASS: real owner creation, country/timezone, onboarding completion, native dashboard, reload, logout/login, failed login, Wi-Fi recovery and secret isolation.\n");
  }
+}catch(error){
+ await page.screenshot({path:"product/qa/onboarding/failure.png",fullPage:true});
+ throw error;
 }finally{await browser.close()}
+
