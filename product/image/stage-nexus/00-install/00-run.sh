@@ -14,6 +14,12 @@ install -m 644 files/product/runtime/nexus.desktop "${ROOTFS_DIR}/usr/share/xses
 install -m 644 files/product/runtime/network.rules "${ROOTFS_DIR}/etc/polkit-1/rules.d/50-nexus-network.rules"
 install -m 644 files/product/runtime/configuration.yaml "${ROOTFS_DIR}/var/lib/nexus/homeassistant/configuration.yaml"
 install -m 755 files/product/runtime/autostart "${ROOTFS_DIR}/home/nexus/.config/openbox/autostart"
+install -m 644 files/product/runtime/timezone.rules "${ROOTFS_DIR}/etc/polkit-1/rules.d/51-nexus-timezone.rules"
+install -d "${ROOTFS_DIR}/usr/share/plymouth/themes/nexus"
+install -m 644 files/product/runtime/nexus.plymouth files/product/runtime/nexus.script "${ROOTFS_DIR}/usr/share/plymouth/themes/nexus/"
+# Keep firmware output quiet; serial console and diagnostics remain available.
+sed -i 's/ console=tty1//g; s/$/ quiet splash logo.nologo vt.global_cursor_default=0/' "${ROOTFS_DIR}/boot/firmware/cmdline.txt"
+printf '\n[all]\ndisable_splash=1\n' >> "${ROOTFS_DIR}/boot/firmware/config.txt"
 on_chroot <<'CHROOT'
 chmod +x /opt/nexus/start-homeassistant.sh /opt/nexus/kiosk.sh
 chown -R nexus:nexus /home/nexus/.config
@@ -25,4 +31,5 @@ systemctl disable ssh.service || true
 systemctl disable userconfig.service || true
 systemctl enable NetworkManager docker nexus-homeassistant lightdm nexus-diagnostics.timer
 systemctl set-default graphical.target
+plymouth-set-default-theme -R nexus
 CHROOT

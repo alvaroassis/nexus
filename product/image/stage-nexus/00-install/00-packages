@@ -2,3 +2,4 @@ xserver-xorg xinit openbox lightdm chromium onboard dbus-x11 python3-xdg x11-xse
 docker.io python3 python3-dbus network-manager polkitd avahi-daemon curl
 gsettings-desktop-schemas gir1.2-atspi-2.0 at-spi2-core
 libglib2.0-bin dconf-gsettings-backend
+python3-websocket tzdata plymouth plymouth-themes fonts-dejavu-core

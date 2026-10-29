@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 const root = fileURLToPath(new URL("../", import.meta.url));
 let failed = false;
-for (const folder of ["web", "tools", "test"]) {
+for (const folder of ["web", "tools", "test", "image/runtime"]) {
   for (const file of await readdir(path.join(root, folder))) {
     if (!file.endsWith(".mjs")) continue;
     const result = spawnSync(

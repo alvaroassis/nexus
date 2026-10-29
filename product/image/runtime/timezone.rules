@@ -1,0 +1,6 @@
+// No arbitrary commands: only timezone changes from the active local kiosk.
+polkit.addRule(function(action, subject) {
+  if (action.id === "org.freedesktop.timedate1.set-timezone" &&
+      subject.user === "nexus" && subject.local && subject.active)
+    return polkit.Result.YES;
+});

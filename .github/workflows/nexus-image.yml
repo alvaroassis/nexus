@@ -21,7 +21,7 @@ jobs:
       - run: node product/tools/check.mjs
       - run: node --test product/test/*.test.mjs
       - run: python3 -m unittest discover -s product/test -p '*_test.py'
-      - run: python3 -m py_compile product/image/runtime/portal.py
+      - run: python3 -m py_compile product/image/runtime/*.py
       - run: find product/image -name '*.sh' -exec bash -n {} \;
       - name: Use the primary Ubuntu mirror for test dependencies
         run: |
@@ -58,6 +58,37 @@ jobs:
             sleep 2
           done
           node product/tools/smoke-backend.mjs
+      - name: Verify complete Nexus setup against a fresh core
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-websocket
+          mkdir -p "$RUNNER_TEMP/nexus-onboarding-config"
+          cp product/image/runtime/configuration.yaml "$RUNNER_TEMP/nexus-onboarding-config/"
+          docker run -d --name nexus-onboarding-check -p 127.0.0.1:18123:8123 -v "$RUNNER_TEMP/nexus-onboarding-config:/config" ghcr.io/home-assistant/home-assistant:2026.10.4
+          export NEXUS_CORE_URL=http://127.0.0.1:18123
+          export NEXUS_STATE_DIR="$RUNNER_TEMP/nexus-onboarding-state"
+          python3 product/test/serve_portal_fixture.py &
+          PORTAL_PID=$!
+          trap 'kill "$PORTAL_PID" || true; docker logs --tail 80 nexus-onboarding-check; docker rm -f nexus-onboarding-check' EXIT
+          for _ in $(seq 1 120); do
+            if curl -fsS http://127.0.0.1:18123/api/onboarding >/dev/null; then break; fi
+            sleep 2
+          done
+          NEXUS_PLAYWRIGHT="$RUNNER_TEMP/nexus-qa/node_modules/playwright/index.mjs" node product/tools/smoke-onboarding.mjs
+      - name: Upload Nexus onboarding evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-onboarding-evidence
+          path: product/qa/onboarding/*
+      - name: Render review frames
+        if: success()
+        run: |
+          python3 - <<'PY'
+          import base64, pathlib
+          for name in ["02-region", "07-dashboard"]:
+              print("NEXUS_FRAME_" + name + ":" + base64.b64encode(pathlib.Path("product/qa/onboarding/" + name + ".png").read_bytes()).decode())
+          PY
   graphical:
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 20
@@ -101,7 +132,7 @@ jobs:
       - name: Upload flashable image and checksums
         uses: actions/upload-artifact@v4
         with:
-          name: nexus-rpi5-arm64-alpha2
+          name: nexus-rpi5-arm64-alpha3
           path: product/dist/*
           if-no-files-found: error
           retention-days: 14

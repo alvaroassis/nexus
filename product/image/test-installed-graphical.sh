@@ -37,6 +37,7 @@ for _ in $(seq 1 90); do
   sleep 2
 done
 [[ "$READY" == 1 ]]
+docker exec nexus-installed-gui python3 -c 'import websocket, zoneinfo; zoneinfo.ZoneInfo("America/New_York")'
 [[ "$(docker exec nexus-installed-gui gsettings get org.onboard.window force-to-top)" == true ]]
 docker exec nexus-installed-gui curl -fsS http://127.0.0.1:8099/health
 sleep 3

@@ -11,6 +11,11 @@ import secrets
 import threading
 import urllib.request
 import uuid
+import sys
+from http.cookies import SimpleCookie
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import nexus_backend as backend
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -104,10 +109,19 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, *_args):
         pass  # Never log request bodies or Wi-Fi credentials.
 
-    def reply(self, status, value, mime="application/json"):
+    def cookie(self):
+        try:
+            cookie = SimpleCookie(self.headers.get("Cookie", ""))
+            return cookie["nexus-session"].value if "nexus-session" in cookie else ""
+        except Exception:
+            return ""
+
+    def reply(self, status, value, mime="application/json", cookie=None):
         body = json.dumps(value).encode() if mime == "application/json" else value
         self.send_response(status)
         self.send_header("Content-Type", mime)
+        if cookie is not None:
+            self.send_header("Set-Cookie", "nexus-session=" + cookie + "; HttpOnly; SameSite=Strict; Path=/; Max-Age=" + ("31536000" if cookie else "0"))
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'")
@@ -126,6 +140,16 @@ class Handler(BaseHTTPRequestHandler):
             self.reply(200, {"ok": True}); return
         if path == "/session":
             self.reply(200, {"token": TOKEN}); return
+        if path == "/regions":
+            self.reply(200, backend.regions()); return
+        if path == "/state":
+            try:
+                self.reply(200, backend.status(self.cookie()))
+            except backend.Failure as error:
+                self.reply(error.status, {"error": error.code})
+            except Exception:
+                self.reply(503, {"error": "starting"})
+            return
         if path == "/ready":
             try:
                 with urllib.request.urlopen("http://127.0.0.1:8123/", timeout=2) as result:
@@ -133,9 +157,9 @@ class Handler(BaseHTTPRequestHandler):
             except Exception:
                 ready = False
             self.reply(200, {"ready": ready}); return
-        if path in ("/", "/portal.mjs"):
-            name = "portal.html" if path == "/" else "portal.mjs"
-            self.reply(200, (ROOT / name).read_bytes(), "text/html; charset=utf-8" if path == "/" else "text/javascript; charset=utf-8"); return
+        if path in ("/", "/portal.mjs", "/portal.css", "/copy.mjs"):
+            name = "portal.html" if path == "/" else path[1:]
+            self.reply(200, (ROOT / name).read_bytes(), "text/html; charset=utf-8" if path == "/" else "text/css; charset=utf-8" if path.endswith(".css") else "text/javascript; charset=utf-8"); return
         if path == "/network":
             self.network_call("status", {}); return
         self.reply(404, {"error": "not_found"})
@@ -152,6 +176,15 @@ class Handler(BaseHTTPRequestHandler):
                 raise ValueError()
         except (ValueError, UnicodeError):
             self.reply(400, {"error": "invalidWifi"}); return
+        if self.path.startswith("/app/"):
+            try:
+                result, cookie = backend.perform(self.path[5:], data, self.cookie())
+                self.reply(200, result, cookie=cookie)
+            except backend.Failure as error:
+                self.reply(error.status, {"error": error.code})
+            except Exception:
+                self.reply(503, {"error": "starting"})
+            return
         if self.path not in ("/scan", "/join"):
             self.reply(404, {"error": "not_found"}); return
         self.network_call(self.path[1:], data)
