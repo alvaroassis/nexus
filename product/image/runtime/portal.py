@@ -157,7 +157,7 @@ class Handler(BaseHTTPRequestHandler):
             except Exception:
                 ready = False
             self.reply(200, {"ready": ready}); return
-        if path in ("/", "/portal.mjs", "/portal.css", "/copy.mjs"):
+        if path in ("/", "/portal.mjs", "/portal.css", "/copy.mjs", "/keyboard.mjs"):
             name = "portal.html" if path == "/" else path[1:]
             self.reply(200, (ROOT / name).read_bytes(), "text/html; charset=utf-8" if path == "/" else "text/css; charset=utf-8" if path.endswith(".css") else "text/javascript; charset=utf-8"); return
         if path == "/network":
@@ -176,20 +176,6 @@ class Handler(BaseHTTPRequestHandler):
                 raise ValueError()
         except (ValueError, UnicodeError):
             self.reply(400, {"error": "invalidWifi"}); return
-        if self.path == "/keyboard":
-            try:
-                import dbus
-                bus = dbus.SessionBus(private=True)
-                keyboard = dbus.Interface(bus.get_object("org.onboard.Onboard", "/org/onboard/Onboard/Keyboard"), "org.onboard.Onboard.Keyboard")
-                if data.get("show") is True:
-                    keyboard.Show()
-                else:
-                    keyboard.ToggleVisible()
-                bus.close()
-                self.reply(200, {"ok": True})
-            except Exception:
-                self.reply(503, {"error": "invalid"})
-            return
         if self.path.startswith("/app/"):
             try:
                 result, cookie = backend.perform(self.path[5:], data, self.cookie())
@@ -223,3 +209,4 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     ThreadingHTTPServer(("127.0.0.1", 8099), Handler).serve_forever()
+

@@ -1,3 +1,4 @@
+import "./keyboard.mjs";
 import { copy } from "./copy.mjs";
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -113,7 +114,7 @@ function detail(id){
  if(!climate)html+=button("control","play","secondary",'data-entity="'+esc(id)+'" data-service="media_play_pause" '+(disabled?"disabled":""));
  }
  html+='<div class="actions">'+button("close","close","secondary")+'</div>';
- $("details").innerHTML=html;$("details").showModal();
+ $("details").innerHTML='<div class="dialog-content">'+html+'</div>';$("details").showModal();
 }
 document.addEventListener("change",e=>{
  if(e.target.id==="country"){draft.country=e.target.value;render()}
@@ -124,7 +125,7 @@ document.addEventListener("click",e=>{
  if(b.dataset.lang){draft.language=b.dataset.lang;saveDraft();render();return}
  const action=b.dataset.action;if(!action)return;
  void run(async()=>{
- if(action==="keyboard")await request("/keyboard",{});
+ if(action==="keyboard")document.querySelector("nexus-keyboard").toggle();
  if(["language","region","network"].includes(action)){go(action);if(action==="network")await refreshNetwork()}
  if(action==="next"){
    if(editing&&page==="language"){await request("/app/preferences",{language:draft.language});await loadDashboard();go("dashboard");editing=false}
@@ -216,3 +217,4 @@ setInterval(async()=>{
  try{await loadDashboard();if(document.activeElement?.tagName!=="SELECT")render()}
  catch(e){online=false;render();if(e.message==="signIn"){snapshot=null;go("login")}else message("connectionLost")}
 },5000);
+

@@ -36,6 +36,14 @@ jobs:
         run: |
           npm install --prefix "$RUNNER_TEMP/nexus-qa" playwright@1.62.1
           "$RUNNER_TEMP/nexus-qa/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Verify integrated tablet keyboard
+        run: NEXUS_PLAYWRIGHT="$RUNNER_TEMP/nexus-qa/node_modules/playwright/index.mjs" node product/tools/smoke-keyboard.mjs
+      - name: Upload tablet keyboard evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-keyboard-evidence
+          path: product/qa/keyboard/*
       - name: Verify interactive UI
         run: |
           node product/tools/serve.mjs &
@@ -142,8 +150,9 @@ jobs:
       - name: Upload flashable image and checksums
         uses: actions/upload-artifact@v4
         with:
-          name: nexus-rpi5-arm64-alpha3
+          name: nexus-rpi5-arm64-alpha4
           path: product/dist/*
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
+

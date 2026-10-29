@@ -19,17 +19,8 @@ for _ in $(seq 1 90); do
   if xdotool search --onlyvisible --class chromium >/dev/null 2>&1 &&
      xdotool search --onlyvisible --name 'Nexus.*Welcome' >/dev/null 2>&1; then
     curl -fsS http://127.0.0.1:8099/health
-    [[ "$(gsettings get org.onboard.window force-to-top)" == true ]]
-    pgrep -x onboard
-    python3 - <<'PY'
-import json, urllib.request
-origin="http://127.0.0.1:8099"
-token=json.load(urllib.request.urlopen(origin+"/session"))["token"]
-req=urllib.request.Request(origin+"/keyboard",data=b'{"show":true}',headers={"Content-Type":"application/json","Origin":origin,"X-Nexus-Token":token})
-assert json.load(urllib.request.urlopen(req))["ok"]
-PY
-    sleep 1
-    xdotool search --onlyvisible --class Onboard
+    curl -fsS http://127.0.0.1:8099/keyboard.mjs | cmp - /opt/nexus/keyboard.mjs
+    if pgrep -x onboard; then echo 'FAIL: floating keyboard is still running.' >&2; exit 1; fi
     sleep 3
     import -window root /evidence/graphical-session.png
     echo 'PASS: Openbox autostart launched portal and visible Chromium Nexus window.'
@@ -39,3 +30,4 @@ PY
 done
 echo 'FAIL: graphical startup did not display Nexus.' >&2
 exit 1
+

@@ -18,7 +18,7 @@ docker pull --platform linux/arm64 "$HA_IMAGE"
 docker image inspect "$HA_IMAGE" --format '{{index .RepoDigests 0}}' > stage-nexus/00-install/files/product/home-assistant.digest
 docker save "$HA_IMAGE" | gzip -1 > stage-nexus/00-install/files/product/home-assistant.tar.gz
 cat > config <<'CONFIG'
-IMG_NAME='nexus-rpi5-arm64-alpha3'
+IMG_NAME='nexus-rpi5-arm64-alpha4'
 PI_GEN_RELEASE='Nexus development image'
 RELEASE='trixie'
 DEPLOY_COMPRESSION='xz'
@@ -48,3 +48,4 @@ git rev-parse HEAD > "$SOURCE/dist/pi-gen.commit"
 cd "$SOURCE/dist"
 sha256sum ./*.img.xz > SHA256SUMS
 echo "Image and checksums: $SOURCE/dist"
+
