@@ -32,7 +32,7 @@ systemctl disable userconfig.service || true
 systemctl enable NetworkManager docker nexus-homeassistant lightdm nexus-diagnostics.timer
 systemctl set-default graphical.target
 plymouth-set-default-theme nexus
-# Refresh every installed kernel, including the Pi 5 firmware initramfs.
-update-initramfs -u -k all
-lsinitramfs /boot/firmware/initramfs_2712 | grep 'plymouth/themes/nexus/nexus.script' >/dev/null
+# pi-gen defers initramfs creation until export-image/05-finalise.
+# Its update-initramfs -k all -c includes this selected theme in every kernel.
+# verify.sh checks the exported Pi 5 initramfs; it does not exist at this stage.
 CHROOT
