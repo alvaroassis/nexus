@@ -24,7 +24,7 @@ export function mediaControls(entity,t,online=true){
  }else if(hasFeature(entity,1024)){
   html+='<div class="media-actions">'+button("volume_down",t("volumeDown"),"−")+button("volume_up",t("volumeUp"),"+")+'</div>';
  }
- if(hasFeature(entity,2048)&&a.source_list?.length)html+='<label class="source-control">'+escape(t("inputSource"))+'<select data-source data-entity="'+id+'" '+(disabled||off?"disabled":"")+'>'+a.source_list.map(source=>'<option '+(source===a.source?"selected":"")+' value="'+escape(source)+'">'+escape(source)+'</option>').join("")+'</select></label>';
+ if(hasFeature(entity,2048)&&a.source_list?.length)html+='<label class="source-control">'+escape(t("inputSource"))+'<select aria-label="'+escape(t("inputSource"))+'" data-source data-entity="'+id+'" '+(disabled||off?"disabled":"")+'>'+a.source_list.map(source=>'<option '+(source===a.source?"selected":"")+' value="'+escape(source)+'">'+escape(source)+'</option>').join("")+'</select></label>';
  return html+'</div>';
 }
 export function discoveryView(data,t){
@@ -56,7 +56,7 @@ export function pairingView(step,t){
   const name=escape(f.name),label=escape(fieldLabel(f.name,t)),required=f.required?' required':"",value=escape(f.default??"");
   if(f.kind==="boolean"){html+='<label class="check-field"><input type="checkbox" name="'+name+'" '+(f.default?"checked":"")+'>'+label+'</label>';continue}
   html+='<label>'+label;
-  if(f.kind==="select")html+='<select name="'+name+'" '+(f.multiple?"multiple ":"")+required+'>'+(!f.required&&!f.multiple?'<option value="">'+t("optional")+'</option>':"")+f.options.map((option,i)=>'<option value="'+i+'" '+(option.value===f.default?"selected":"")+'>'+escape(option.label)+'</option>').join("")+'</select>';
+  if(f.kind==="select")html+='<select aria-label="'+label+'" name="'+name+'" '+(f.multiple?"multiple ":"")+required+'>'+(!f.required&&!f.multiple?'<option value="">'+t("optional")+'</option>':"")+f.options.map((option,i)=>'<option value="'+i+'" '+(option.value===f.default?"selected":"")+'>'+escape(option.label)+'</option>').join("")+'</select>';
   else html+='<input name="'+name+'" type="'+(f.kind==="number"?"number":f.secret?"password":"text")+'" value="'+value+'" '+required+' '+(f.kind==="number"?['min','max'].filter(k=>f[k]!==undefined).map(k=>k+'="'+f[k]+'"').join(" ")+' step="'+(f.step??"any")+'"':'maxlength="1024" autocomplete="off" autocapitalize="none"')+'>';
   html+='</label>';
  }

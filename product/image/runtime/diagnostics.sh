@@ -8,10 +8,14 @@ trap 'rm -f "$TEMP"' EXIT
   echo 'Nexus boot diagnostics'
   date -u
   uname -r
-  for unit in lightdm nexus-homeassistant NetworkManager; do
+  for unit in lightdm nexus-homeassistant NetworkManager plymouth-start plymouth-quit-wait; do
     echo "$unit"
     systemctl show "$unit" -p ActiveState -p SubState -p Result -p NRestarts
   done
+  echo 'Selected boot theme:'
+  plymouth-set-default-theme || true
+  echo 'Firmware initramfs files:'
+  ls -l /boot/firmware/initramfs* 2>/dev/null || true
   echo 'Graphical processes:'
   ps -C Xorg,openbox,chromium,onboard -o comm= || true
   echo 'DRM connectors and modes:'
