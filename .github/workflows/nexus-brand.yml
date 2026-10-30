@@ -1,0 +1,24 @@
+name: Nexus brand asset
+on:
+  push:
+    branches: [codex/alpha5-experience]
+    paths: [".github/workflows/nexus-brand.yml"]
+permissions:
+  contents: read
+jobs:
+  brand:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - name: Retrieve owner supplied public brand asset
+        run: |
+          python3 - <<'PY'
+          import urllib.request, base64, hashlib
+          url="https://rkhkmkdptmhmooykbrtx.supabase.co/storage/v1/object/public/company-assets/logo-dark-mode.png?t=1779126141071"
+          data=urllib.request.urlopen(url, timeout=30).read(1000001)
+          assert data.startswith(b'\x89PNG\r\n\x1a\n') and len(data)<1000000
+          print("BRAND_SHA256:"+hashlib.sha256(data).hexdigest())
+          encoded=base64.b64encode(data).decode()
+          for n in range(0,len(encoded),8192):
+              print("BRAND_CHUNK:"+encoded[n:n+8192])
+          PY
