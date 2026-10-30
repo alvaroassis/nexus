@@ -31,6 +31,9 @@ sudo grep -q 'MatchDriver "vc4"' "$MOUNT/etc/X11/xorg.conf.d/99-nexus-vc4.conf"
 sudo grep -q 'Option "PrimaryGPU" "true"' "$MOUNT/etc/X11/xorg.conf.d/99-nexus-vc4.conf"
 sudo test -s "$MOUNT/opt/nexus/diagnostics.sh"
 sudo test -s "$MOUNT/opt/nexus/nexus_backend.py"
+sudo test ! -e "$MOUNT/usr/bin/onboard"
+sudo test -s "$MOUNT/opt/nexus/brand-3fx.png"
+sudo lsinitramfs "$BOOT/initramfs_2712" | grep "plymouth/themes/nexus/nexus.script" >/dev/null
 sudo test -s "$MOUNT/usr/share/plymouth/themes/nexus/nexus.script"
 sudo grep -q 'splash' "$BOOT/cmdline.txt"
 echo 'Checking Pi 5 boot files and installed payload'

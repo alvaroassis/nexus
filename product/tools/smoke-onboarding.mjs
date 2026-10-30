@@ -56,6 +56,17 @@ try {
   const token=(await(await fetch("/session")).json()).token;
   return (await(await fetch("/app/snapshot",{method:"POST",headers:{"Content-Type":"application/json","X-Nexus-Token":token},body:"{}"})).json());
  });
+ const discoveryCheck=await page.evaluate(async()=>{
+  const token=(await(await fetch("/session")).json()).token;
+  const post=async(path,data)=>{const response=await fetch("/app/"+path,{method:"POST",headers:{"Content-Type":"application/json","X-Nexus-Token":token},body:JSON.stringify(data)});if(!response.ok)throw new Error(path+" status "+response.status);return response.json()};
+  const devices=await post("discover",{});
+  const flow=await post("pair",{handler:"roku"});
+  if(flow.flow_id&&flow.type!=="create_entry"&&flow.type!=="abort")await post("pair-cancel",{flow_id:flow.flow_id});
+  return {catalog:devices.catalog,found:devices.found,flowType:flow.type};
+ });
+ assert.ok(discoveryCheck.catalog.some(item=>item.handler==="roku"));
+ assert.ok(Array.isArray(discoveryCheck.found));
+ assert.ok(["form","menu","abort","create_entry"].includes(discoveryCheck.flowType));
  assert.equal(result.config.country,"BR");assert.equal(result.config.time_zone,"America/Sao_Paulo");assert.equal(result.preferences.setup,true);
  assert.equal(result.preferences.language,"pt");
  assert.equal(await page.evaluate(()=>document.cookie.includes("nexus-session")),false);

@@ -1,4 +1,5 @@
 import "./keyboard.mjs";
+import {mediaControls, discoveryView, pairingView, readPairValues, icon} from "./devices.mjs";
 import { copy } from "./copy.mjs";
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -6,6 +7,8 @@ let draft = {language:"en",country:"US",time_zone:"America/New_York",home:""};
 try { draft = {...draft,...JSON.parse(localStorage.getItem("nexus-draft") || "{}")}; } catch {}
 if (!copy[draft.language]) draft.language = "en";
 let page="boot", token="", regions={}, state={}, network={interfaces:[]}, snapshot=null, busy=false, flow="", room="", tab="dashboard", editing=false, online=true;
+let discovered=null, discovering=false, pairStep=null, pairPoll=null;
+const splashStarted=performance.now();
 const t = key => copy[draft.language][key] || copy[draft.language].invalid;
 const saveDraft = () => {try{localStorage.setItem("nexus-draft",JSON.stringify(draft))}catch{}};
 const button = (action,key,kind="primary",extra="") => '<button type="button" data-action="'+action+'" class="'+kind+'" '+extra+'>'+t(key)+'</button>';
@@ -18,7 +21,7 @@ async function request(path, data) {
 async function run(fn) {
   if(busy)return;
   busy=true;message("");
-  const buttons=[...document.querySelectorAll("button")].map(b=>[b,b.disabled]);
+  const buttons=[...document.querySelectorAll("button, input[data-volume], select[data-source]")].map(b=>[b,b.disabled]);
   buttons.forEach(([b])=>b.disabled=true);
   try{await fn()}catch(e){message(e.message==="signIn"?"authFailed":e.message)}
   finally{busy=false;buttons.forEach(([b,disabled])=>{if(b.isConnected)b.disabled=disabled})}
@@ -34,13 +37,13 @@ function regionFields(){
 function footer(previous,next="next",key="next"){return '<div class="actions">'+(previous?button(previous,"back","secondary back"):"")+button(next,key)+'</div>'}
 function render(){
  document.documentElement.lang=draft.language;
- $("keyboard-button").hidden=page==="boot";$("keyboard-button").ariaLabel=t("keyboard");
+
  $("app").className=page==="dashboard"?"dashboard":"";
  const steps=["language","region","network","account","home","done"];
  const index=steps.indexOf(page);
  $("step-label").textContent=index>=0&&!editing?t("step")+" "+(index+1)+" / 6":"";
  let html="";
- if(page==="boot")html='<section class="splash"><span class="symbol" aria-hidden="true">N</span><h1>NEXUS</h1><div class="loader"></div><p>'+t("starting")+'</p></section>';
+ if(page==="boot")html='<section class="splash"><h1>NEXUS</h1><div class="loader"></div><p>'+t("starting")+'</p></section>';
  if(page==="language")html='<h1>'+t("language")+'</h1><p>'+t("languageHelp")+'</p><div class="choices">'+[["en","English"],["pt","Português"],["es","Español"]].map(([v,n])=>'<button class="choice" data-lang="'+v+'" aria-pressed="'+(v===draft.language)+'">'+n+'<span>'+(v===draft.language?"✓":"")+'</span></button>').join("")+'</div>'+footer(editing?"cancel":null);
  if(page==="region")html='<h1>'+t("region")+'</h1><p>'+t("regionHelp")+'</p><form id="region-form">'+regionFields()+'<div class="actions">'+button("language","back","secondary back")+'<button class="primary">'+t("next")+'</button></div></form>';
  if(page==="network"){
@@ -63,7 +66,7 @@ function render(){
    html+='<div class="actions">'+(fresh?button("network","back","secondary back"):"")+'<button class="primary">'+t(fresh?"next":"signIn")+'</button></div></form>';
  }
  if(page==="home")html='<h1>'+t("home")+'</h1><p>'+t("homeHelp")+'</p><form id="home-form">'+field("home","homeName","text",'maxlength="80" value="'+esc(draft.home)+'"')+'<div class="actions">'+button("region","back","secondary back")+'<button class="primary">'+t("finish")+'</button></div></form>';
- if(page==="done")html='<section class="splash"><span class="symbol" aria-hidden="true">N</span><h1 style="letter-spacing:-.04em">'+t("done")+'</h1><p>'+t("doneHelp")+'</p>'+button("enter","enter")+'</section>';
+ if(page==="done")html='<section class="splash"><h1 style="letter-spacing:-.04em">'+t("done")+'</h1><p>'+t("doneHelp")+'</p>'+button("enter","enter")+'</section>';
  if(page==="dashboard")html=dashboard();
  $("app").innerHTML='<section class="screen">'+html+'</section>';
 }
@@ -72,6 +75,8 @@ function dashboard(){
  const nav='<nav>'+["dashboard","devices","settings"].map(k=>button("tab-"+k,k,"secondary",'aria-pressed="'+(tab===k)+'"')).join("")+'</nav>';
  let body='<h1>'+esc(snapshot.config.location_name)+'</h1>'+nav;
  if(!online)body+='<p role="status">'+t("connectionLost")+'</p>';
+ if(discovering&&snapshot.user.is_admin)return body+'<div class="actions">'+button("devices-back","back","secondary back")+'</div>'+discoveryView(discovered,t);
+ if(tab==="devices"&&snapshot.user.is_admin)body+='<div class="section-heading"><h2>'+t("devices")+'</h2>'+button("discover","addDevice","primary")+'</div>';
  if(tab==="settings")return body+'<div class="cards"><section class="card"><h2>'+esc(snapshot.user.name)+'</h2><p>'+esc(snapshot.config.time_zone)+'</p>'+button("logout","logout","secondary")+'</section><section class="card"><h2>'+t("settings")+'</h2><div class="choices">'+button("edit-language","languageHelp","secondary")+(snapshot.user.is_admin?button("edit-region","homeSettings","secondary")+button("edit-network","networkSettings","secondary"):"")+'</div></section></div>';
  const favorites=snapshot.preferences.favorites||[];
  const hidden=new Set(snapshot.entities.filter(e=>e.hidden_by||e.disabled_by||e.entity_category||e.platform==="backup").map(e=>e.entity_id));
@@ -87,9 +92,10 @@ function dashboard(){
  return body+'<div class="cards">'+entities.map(e=>{
  const domain=e.entity_id.split(".")[0], unavailable=["unavailable","unknown"].includes(e.state);
  let control=button("details","details","secondary",'data-entity="'+esc(e.entity_id)+'"');
- if(["light","switch","fan"].includes(domain))control=button("control",e.state==="on"?"off":"on","primary",'data-entity="'+esc(e.entity_id)+'" data-service="'+(e.state==="on"?"turn_off":"turn_on")+'" '+(!online||unavailable?"disabled":""));
+ if(["light","switch","fan"].includes(domain))control=button("control",e.state==="on"?"powerOff":"powerOn","primary",'data-entity="'+esc(e.entity_id)+'" data-service="'+(e.state==="on"?"turn_off":"turn_on")+'" '+(!online||unavailable?"disabled":""));
+ if(domain==="media_player")control=mediaControls(e,t,online);
  if(domain==="scene")control=button("control","activate","primary",'data-entity="'+esc(e.entity_id)+'" data-service="turn_on" '+(!online?"disabled":""));
- return '<article class="card '+(e.state==="on"?"on":"")+'"><div class="card-top"><small>'+esc(domain)+'</small><button class="star" data-action="favorite" data-entity="'+esc(e.entity_id)+'" aria-label="'+t("favorite")+': '+esc(e.attributes.friendly_name||e.entity_id)+'" aria-pressed="'+favorites.includes(e.entity_id)+'">'+(favorites.includes(e.entity_id)?"★":"☆")+'</button></div><h2>'+esc(e.attributes.friendly_name||e.entity_id)+'</h2><p>'+esc(unavailable?t("unavailable"):["on","off"].includes(e.state)?t(e.state):e.state)+' '+esc(e.attributes.unit_of_measurement||"")+'</p>'+control+'</article>';
+ return '<article class="card '+(e.state==="on"?"on":"")+'"><div class="card-top"><small>'+t('type_'+domain)+'</small><button class="star" data-action="favorite" data-entity="'+esc(e.entity_id)+'" aria-label="'+t("favorite")+': '+esc(e.attributes.friendly_name||e.entity_id)+'" aria-pressed="'+favorites.includes(e.entity_id)+'">'+(favorites.includes(e.entity_id)?"★":"☆")+'</button></div><h2>'+esc(e.attributes.friendly_name||e.entity_id)+'</h2><p>'+esc(unavailable?t("unavailable"):["on","off"].includes(e.state)?t(e.state):["playing","paused","idle","buffering"].includes(e.state)?t("state_"+e.state):e.state)+' '+esc(e.attributes.unit_of_measurement||"")+'</p>'+control+'</article>';
  }).join("")+'</div>';
 }
 async function refreshNetwork(){
@@ -108,15 +114,53 @@ function detail(id){
  const domain=id.split(".")[0],disabled=!online||["unavailable","unknown"].includes(e.state);
  let html='<h2>'+esc(e.attributes.friendly_name||id)+'</h2><p>'+esc(e.state)+'</p>';
  if(domain==="cover")html+='<div class="actions">'+[["open_cover","openCover"],["stop_cover","stop"],["close_cover","close"]].map(([s,k])=>button("control",k,"secondary",'data-entity="'+esc(id)+'" data-service="'+s+'" '+(disabled?"disabled":""))).join("")+'</div>';
- if(domain==="climate"||domain==="media_player"){
- const climate=domain==="climate";
- html+='<form id="detail-form" data-entity="'+esc(id)+'" data-service="'+(climate?"set_temperature":"volume_set")+'">'+field("value",climate?"temperature":"volume","number",'step="'+(climate?".5":".05")+'" min="'+(climate?esc(e.attributes.min_temp??7):"0")+'" max="'+(climate?esc(e.attributes.max_temp??35):"1")+'" value="'+esc(climate?e.attributes.temperature??20:e.attributes.volume_level??.5)+'"')+'<button class="primary" '+(disabled?"disabled":"")+'>'+t("save")+'</button></form>';
- if(!climate)html+=button("control","play","secondary",'data-entity="'+esc(id)+'" data-service="media_play_pause" '+(disabled?"disabled":""));
+ if(domain==="climate"){
+ html+='<form id="detail-form" data-entity="'+esc(id)+'" data-service="set_temperature">'+field("value","temperature","number",'step=".5" min="'+esc(e.attributes.min_temp??7)+'" max="'+esc(e.attributes.max_temp??35)+'" value="'+esc(e.attributes.temperature??20)+'"')+'<button class="primary" '+(disabled?"disabled":"")+'>'+t("save")+'</button></form>';
  }
+ if(domain==="media_player")html+=mediaControls(e,t,online);
  html+='<div class="actions">'+button("close","close","secondary")+'</div>';
  $("details").innerHTML='<div class="dialog-content">'+html+'</div>';$("details").showModal();
 }
+async function refreshDiscovery(){
+ discovered=await request("/app/discover",{});
+ if(page==="dashboard"&&discovering)render();
+}
+function showPair(step){
+ clearTimeout(pairPoll);pairStep=step;
+ const dialog=$("details");dialog.innerHTML='<div class="dialog-content">'+pairingView(step,t)+'</div>';
+ dialog.setAttribute("aria-labelledby","pair-title");if(!dialog.open)dialog.showModal();
+ if(["progress","progress_done"].includes(step.type)){
+  pairPoll=setTimeout(async()=>{
+   try{const next=await request("/app/pair-status",{flow_id:step.flow_id});if(pairStep?.flow_id===step.flow_id&&dialog.open)showPair(next)}
+   catch{if(dialog.open){dialog.querySelector(".dialog-content").insertAdjacentHTML("beforeend",'<p role="alert">'+t("pairExpired")+'</p>')}}
+  },2000);
+ }
+}
+async function closePair(){
+ clearTimeout(pairPoll);const previous=pairStep;pairStep=null;
+ $("details").close();$("details").removeAttribute("aria-labelledby");
+ if(previous?.flow_id&&!["create_entry","abort"].includes(previous.type)){
+  try{await request("/app/pair-cancel",{flow_id:previous.flow_id})}catch{}
+ }
+ await loadDashboard();if(discovering)await refreshDiscovery();else render();
+}
+$("details").addEventListener("cancel",event=>{
+ if(pairStep){event.preventDefault();void run(closePair)}
+});
+document.addEventListener("input",e=>{
+ if(e.target.matches("[data-volume]"))e.target.closest("label").querySelector("output").textContent=e.target.value+"%";
+});
 document.addEventListener("change",e=>{
+ if(e.target.matches("[data-volume],[data-source]")){
+  const input=e.target, volume=input.hasAttribute("data-volume");
+  const id=input.dataset.entity,value=volume?Number(input.value)/100:input.value;
+  void run(async()=>{
+   await request("/app/control",{entity_id:id,service:volume?"volume_set":"select_source",value});
+   await loadDashboard();
+   if($("details").open){$("details").close();detail(id)}else render();
+  });
+ }
+
  if(e.target.id==="country"){draft.country=e.target.value;render()}
  if(e.target.id==="room"){room=e.target.value;render()}
 });
@@ -125,7 +169,7 @@ document.addEventListener("click",e=>{
  if(b.dataset.lang){draft.language=b.dataset.lang;saveDraft();render();return}
  const action=b.dataset.action;if(!action)return;
  void run(async()=>{
- if(action==="keyboard")document.querySelector("nexus-keyboard").toggle();
+
  if(["language","region","network"].includes(action)){go(action);if(action==="network")await refreshNetwork()}
  if(action==="next"){
    if(editing&&page==="language"){await request("/app/preferences",{language:draft.language});await loadDashboard();go("dashboard");editing=false}
@@ -144,7 +188,12 @@ document.addEventListener("click",e=>{
    }
  }
  if(action==="enter"||action==="cancel"){editing=false;await loadDashboard();go("dashboard")}
- if(action.startsWith("tab-")){tab=action.slice(4);render()}
+ if(action.startsWith("tab-")){tab=action.slice(4);discovering=false;render()}
+ if(action==="discover"||action==="discover-refresh"){discovering=true;discovered=null;render();await refreshDiscovery()}
+ if(action==="devices-back"){discovering=false;tab="devices";render()}
+ if(action==="pair"){showPair(await request("/app/pair",b.dataset.flow?{flow_id:b.dataset.flow}:{handler:b.dataset.handler}))}
+ if(action==="pair-menu"){showPair(await request("/app/pair-step",{flow_id:pairStep.flow_id,values:{next_step_id:b.dataset.step}}))}
+ if(action==="pair-close")await closePair();
  if(action.startsWith("edit-")){editing=true;go(action.slice(5));if(page==="network")await refreshNetwork()}
  if(action==="logout"&&confirm(t("logoutConfirm"))){await request("/app/logout",{});snapshot=null;flow="";editing=false;go("login")}
  if(action==="favorite"){
@@ -156,14 +205,19 @@ document.addEventListener("click",e=>{
  if(action==="close")$("details").close();
  if(action==="control"){
    if(b.dataset.entity.startsWith("scene.")&&!confirm(t("confirmScene")))return;
-   await request("/app/control",{entity_id:b.dataset.entity,service:b.dataset.service});
-   await loadDashboard();render();
+   await request("/app/control",{entity_id:b.dataset.entity,service:b.dataset.service,...(b.dataset.value!==undefined?{value:JSON.parse(b.dataset.value)}:{})});
+   await loadDashboard();if($("details").open){$("details").close();detail(b.dataset.entity)}else render();
  }
  });
 });
 document.addEventListener("submit",e=>{
  e.preventDefault();const form=e.target,data=Object.fromEntries(new FormData(form));
  void run(async()=>{
+  if(form.id==="pair-form"){
+   const values=readPairValues(form,pairStep),id=pairStep.flow_id;
+   form.querySelectorAll('input[type="password"]').forEach(input=>input.value="");
+   showPair(await request("/app/pair-step",{flow_id:id,values}));return;
+  }
   if(form.id==="region-form"){draft.country=data.country;draft.time_zone=data.time_zone;go(editing?"home":"network");if(!editing)await refreshNetwork()}
   if(form.id==="wifi-form"){
    form.querySelector('[name="password"]').value="";
@@ -211,10 +265,13 @@ async function boot(){
   }
  }catch{message("starting");setTimeout(boot,3000)}
 }
-void boot();
+void boot().finally(()=>{
+ const remaining=Math.max(0,2200-(performance.now()-splashStarted));
+ setTimeout(()=>$("boot-splash")?.remove(),remaining);
+});
 setInterval(async()=>{
  if(page!=="dashboard"||busy||$("details").open)return;
- try{await loadDashboard();if(document.activeElement?.tagName!=="SELECT")render()}
+ try{if(discovering){await refreshDiscovery();return}await loadDashboard();if(!document.activeElement?.matches("select,input,button[data-action=control]"))render()}
  catch(e){online=false;render();if(e.message==="signIn"){snapshot=null;go("login")}else message("connectionLost")}
 },5000);
 

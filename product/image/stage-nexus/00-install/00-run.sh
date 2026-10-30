@@ -18,8 +18,8 @@ install -m 644 files/product/runtime/timezone.rules "${ROOTFS_DIR}/etc/polkit-1/
 install -d "${ROOTFS_DIR}/usr/share/plymouth/themes/nexus"
 install -m 644 files/product/runtime/nexus.plymouth files/product/runtime/nexus.script "${ROOTFS_DIR}/usr/share/plymouth/themes/nexus/"
 # Keep firmware output quiet; serial console and diagnostics remain available.
-sed -i 's/ console=tty1//g; s/$/ quiet splash logo.nologo vt.global_cursor_default=0/' "${ROOTFS_DIR}/boot/firmware/cmdline.txt"
-printf '\n[all]\ndisable_splash=1\n' >> "${ROOTFS_DIR}/boot/firmware/config.txt"
+sed -i 's/ console=tty1//g; s/$/ console=tty1 quiet splash plymouth.ignore-serial-consoles logo.nologo vt.global_cursor_default=0/' "${ROOTFS_DIR}/boot/firmware/cmdline.txt"
+printf '\n[all]\ndisable_splash=1\nauto_initramfs=1\n' >> "${ROOTFS_DIR}/boot/firmware/config.txt"
 on_chroot <<'CHROOT'
 chmod +x /opt/nexus/start-homeassistant.sh /opt/nexus/kiosk.sh
 chown -R nexus:nexus /home/nexus/.config
@@ -31,5 +31,8 @@ systemctl disable ssh.service || true
 systemctl disable userconfig.service || true
 systemctl enable NetworkManager docker nexus-homeassistant lightdm nexus-diagnostics.timer
 systemctl set-default graphical.target
-plymouth-set-default-theme -R nexus
+plymouth-set-default-theme nexus
+# Refresh every installed kernel, including the Pi 5 firmware initramfs.
+update-initramfs -u -k all
+lsinitramfs /boot/firmware/initramfs_2712 | grep 'plymouth/themes/nexus/nexus.script' >/dev/null
 CHROOT

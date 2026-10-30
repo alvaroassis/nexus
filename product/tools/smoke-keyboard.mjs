@@ -37,8 +37,8 @@ try{
   const fixtures={"/session":{token:"test-only"},"/state":{ready:true,new:true,authenticated:false},"/regions":{US:["America/New_York"],BR:["America/Sao_Paulo"]},"/network":{interfaces:[{interface:"eth0",type:"ethernet",connected:true},{interface:"wlan0",type:"wireless",connected:false}]},"/scan":{accesspoints:[{ssid:"Nexus test Wi-Fi",signal:90}]}};
   if(fixtures[name])return route.fulfill({json:fixtures[name]});
   const file=name==="/"?"portal.html":name.slice(1);
-  if(!["portal.html","portal.css","portal.mjs","copy.mjs","keyboard.mjs"].includes(file))return route.fulfill({status:404,body:""});
-  return route.fulfill({contentType:file.endsWith(".mjs")?"text/javascript":file.endsWith(".css")?"text/css":"text/html",body:await readFile(path.join(root,file))});
+  if(!["portal.html","portal.css","portal.mjs","copy.mjs","keyboard.mjs","devices.mjs","brand-3fx.png"].includes(file))return route.fulfill({status:404,body:""});
+  return route.fulfill({contentType:file.endsWith(".png")?"image/png":file.endsWith(".mjs")?"text/javascript":file.endsWith(".css")?"text/css":"text/html",body:await readFile(path.join(root,file))});
  });
  await page.goto("http://nexus.test/");
  await page.getByRole("button",{name:"Português",exact:true}).tap();

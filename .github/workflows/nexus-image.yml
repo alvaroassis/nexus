@@ -2,12 +2,12 @@ name: Nexus Raspberry Pi 5 image
 on:
   workflow_dispatch:
   push:
-    branches: [dev]
+    branches: [dev, codex/alpha5-experience]
     paths: ["product/**", ".github/workflows/nexus-image.yml"]
 permissions:
   contents: read
 concurrency:
-  group: nexus-image
+  group: nexus-image-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   validate:
@@ -44,6 +44,24 @@ jobs:
         with:
           name: nexus-keyboard-evidence
           path: product/qa/keyboard/*
+      - name: Verify device controls and pairing UI
+        run: NEXUS_PLAYWRIGHT="$RUNNER_TEMP/nexus-qa/node_modules/playwright/index.mjs" node product/tools/smoke-devices.mjs
+      - name: Upload device experience evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-device-evidence
+          path: product/qa/devices/*
+      - name: Render device review frames
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import base64, pathlib
+          for path in pathlib.Path("product/qa/devices").glob("*.png"):
+              encoded=base64.b64encode(path.read_bytes()).decode()
+              for index in range(0,len(encoded),8192):
+                  print("DEVICE_FRAME:"+path.stem+":"+str(index)+":"+encoded[index:index+8192])
+          PY
       - name: Verify interactive UI
         run: |
           node product/tools/serve.mjs &
@@ -127,6 +145,7 @@ jobs:
           name: nexus-graphical-evidence
           path: product/qa/graphical/*
   image:
+    if: github.ref == 'refs/heads/dev'
     needs: [validate, graphical]
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 180
@@ -150,7 +169,7 @@ jobs:
       - name: Upload flashable image and checksums
         uses: actions/upload-artifact@v4
         with:
-          name: nexus-rpi5-arm64-alpha4
+          name: nexus-rpi5-arm64-alpha5
           path: product/dist/*
           if-no-files-found: error
           retention-days: 14

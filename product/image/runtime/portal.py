@@ -157,7 +157,9 @@ class Handler(BaseHTTPRequestHandler):
             except Exception:
                 ready = False
             self.reply(200, {"ready": ready}); return
-        if path in ("/", "/portal.mjs", "/portal.css", "/copy.mjs", "/keyboard.mjs"):
+        if path == "/brand-3fx.png":
+            self.reply(200, (ROOT / "brand-3fx.png").read_bytes(), "image/png"); return
+        if path in ("/", "/portal.mjs", "/portal.css", "/copy.mjs", "/keyboard.mjs", "/devices.mjs"):
             name = "portal.html" if path == "/" else path[1:]
             self.reply(200, (ROOT / name).read_bytes(), "text/html; charset=utf-8" if path == "/" else "text/css; charset=utf-8" if path.endswith(".css") else "text/javascript; charset=utf-8"); return
         if path == "/network":

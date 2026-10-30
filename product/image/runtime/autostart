@@ -1,7 +1,7 @@
 mkdir -p "$HOME/.local/state/nexus"
 exec >>"$HOME/.local/state/nexus/session.log" 2>&1
 printf '\nNexus graphical session: %s\n' "$(date -Is)"
-xsetroot -solid "#101b1a"
+xsetroot -solid "#080a0c"
 xset s off
 xset -dpms
 xset s noblank

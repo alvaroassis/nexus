@@ -1,10 +1,10 @@
-Window.SetBackgroundTopColor(0.063, 0.106, 0.102);
-Window.SetBackgroundBottomColor(0.063, 0.106, 0.102);
-logo_image = Image.Text("N E X U S", 0.79, 0.91, 0.64, 1, "DejaVu Sans 38");
+Window.SetBackgroundTopColor(0.031, 0.039, 0.047);
+Window.SetBackgroundBottomColor(0.031, 0.039, 0.047);
+logo_image = Image.Text("N E X U S", 0.957, 0.659, 0.145, 1, "DejaVu Sans 38");
 logo = Sprite(logo_image);
 logo.SetX(Window.GetWidth() / 2 - logo_image.GetWidth() / 2);
 logo.SetY(Window.GetHeight() / 2 - logo_image.GetHeight() / 2);
-dot_image = Image.Text("•", 0.79, 0.91, 0.64, 1, "DejaVu Sans 24");
+dot_image = Image.Text("•", 0.957, 0.659, 0.145, 1, "DejaVu Sans 24");
 dot = Sprite(dot_image);
 dot.SetY(Window.GetHeight() / 2 + 65);
 global.phase = 0;

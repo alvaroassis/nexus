@@ -41,13 +41,13 @@ def save_state(value):
     os.replace(path, STATE / "session.json")
 
 
-def request(path, data=None, token=None, form=False):
+def request(path, data=None, token=None, form=False, method=None):
     headers = {"Content-Type": "application/x-www-form-urlencoded" if form else "application/json"}
     if token:
         headers["Authorization"] = "Bearer " + token
     body = (urllib.parse.urlencode(data).encode() if form else json.dumps(data).encode()) if data is not None else None
     try:
-        with HTTP.open(urllib.request.Request(BASE + path, data=body, headers=headers), timeout=30) as response:
+        with HTTP.open(urllib.request.Request(BASE + path, data=body, headers=headers, method=method), timeout=30) as response:
             body = response.read()
             return json.loads(body) if body else {}
     except urllib.error.HTTPError as error:
@@ -194,6 +194,9 @@ def perform(action, data, cookie):
                 return {"flow": key, "invalid": bool(result.get("errors"))}, None
             raise Failure("signIn", 401)
         state = authenticated(cookie)
+        if action in ("discover", "pair", "pair-status", "pair-step", "pair-cancel"):
+            import nexus_discovery
+            return nexus_discovery.perform(__import__(__name__), state, action, data), None
         if action == "logout":
             try:
                 request("/auth/token", {"action": "revoke", "token": state["refresh"]}, form=True)
@@ -245,19 +248,41 @@ def perform(action, data, cookie):
             if not isinstance(entity, str) or "." not in entity:
                 raise Failure("invalid")
             domain = entity.split(".")[0]
-            allowed = {"light": ["turn_on", "turn_off"], "switch": ["turn_on", "turn_off"], "fan": ["turn_on", "turn_off"], "scene": ["turn_on"], "cover": ["open_cover", "close_cover", "stop_cover"], "climate": ["set_temperature"], "media_player": ["media_play_pause", "volume_set"]}
+            allowed = {"light": ["turn_on", "turn_off"], "switch": ["turn_on", "turn_off"], "fan": ["turn_on", "turn_off"], "scene": ["turn_on"], "cover": ["open_cover", "close_cover", "stop_cover"], "climate": ["set_temperature"], "media_player": ["turn_on", "turn_off", "media_play", "media_pause", "media_play_pause", "volume_set", "volume_mute", "volume_up", "volume_down", "select_source"]}
             service = data.get("service")
             if service not in allowed.get(domain, []):
                 raise Failure("invalid")
             payload = {"entity_id": entity}
+            if domain == "media_player":
+                states = ws(state, [{"type": "get_states"}])[0]
+                current = next((s for s in states if s["entity_id"] == entity), None)
+                if not current or current.get("state") in ("unavailable", "unknown"):
+                    raise Failure("unavailable")
+                attributes = current.get("attributes") or {}
+                features = int(attributes.get("supported_features", 0))
+                flags = {"turn_on": 128, "turn_off": 256, "volume_set": 4, "volume_mute": 8,
+                         "volume_up": 1024, "volume_down": 1024, "select_source": 2048,
+                         "media_play": 16384, "media_pause": 1}
+                required = flags.get(service, 1 if current["state"] == "playing" else 16384)
+                if not features & required:
+                    raise Failure("unsupportedControl")
+                if service == "volume_mute":
+                    if type(data.get("value")) is not bool:
+                        raise Failure("invalid")
+                    payload["is_volume_muted"] = data["value"]
+                if service == "select_source":
+                    source = data.get("value")
+                    if not isinstance(source, str) or source not in attributes.get("source_list", []):
+                        raise Failure("invalid")
+                    payload["source"] = source
             if service == "set_temperature":
                 value = data.get("value")
-                if not isinstance(value, (int, float)) or not -50 <= value <= 100:
+                if type(value) not in (int, float) or not -50 <= value <= 100:
                     raise Failure("invalid")
                 payload["temperature"] = value
             if service == "volume_set":
                 value = data.get("value")
-                if not isinstance(value, (int, float)) or not 0 <= value <= 1:
+                if type(value) not in (int, float) or not 0 <= value <= 1:
                     raise Failure("invalid")
                 payload["volume_level"] = value
             ws(state, [{"type": "call_service", "domain": domain, "service": service, "service_data": payload}])
