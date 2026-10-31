@@ -27,7 +27,7 @@ async function soft(text){
 }
 async function visibleField(locator){
  const field=await locator.boundingBox(),board=await keyboard.boundingBox();
- assert.ok(board&&field); assert.ok(await page.locator("#app-viewport").evaluate(el=>el.scrollHeight<=el.clientHeight+1),"Form must fit above the keyboard");
+ assert.ok(board&&field); assert.ok(await locator.evaluate(el=>{const container=el.closest(".dialog-content")||document.querySelector("#app-viewport");return container.scrollHeight<=container.clientHeight+1}),"Form must fit above the keyboard");
  assert.ok(field.y>=0,"Field must remain inside the visible viewport");
  assert.ok(field.y+field.height<=board.y+1,"Keyboard must not cover the active field");
  assert.ok(board.x>=0&&board.x+board.width<=page.viewportSize().width+1);
