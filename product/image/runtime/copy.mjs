@@ -28,7 +28,7 @@ export const copy = {
     "accountHelp": "Create the owner account that protects your home.",
     "name": "Your name",
     "username": "Username",
-    "passwordHelp": "Use at least 12 characters.",
+    "passwordHelp": "Use at least 4 characters.",
     "confirmPassword": "Confirm password",
     "mismatch": "Passwords do not match.",
     "login": "Welcome back.",
@@ -140,7 +140,17 @@ export const copy = {
     "field_client_id": "Client ID",
     "field_client_secret": "Client secret",
     "powerOn": "Turn on",
-    "powerOff": "Turn off"
+    "powerOff": "Turn off",
+    "preparingTitle": "Preparing your Nexus",
+    "preparingHelp": "Please wait. We will continue automatically when your home services are ready.",
+    "setupTip1": "Control compatible home devices from one place.",
+    "setupTip2": "Connect lights, TVs and other compatible IoT devices.",
+    "setupTip3": "Organize your devices by room and keep favorites within reach.",
+    "wifiChoose": "Tap a network below, or enter its name.",
+    "discoveryDiagnostics": "Discovery status",
+    "discoveryExplanation": "This list contains pending pairing requests. Refresh reads current discovery results; it does not scan every address.",
+    "discoveryServices": "Discovery services",
+    "discoveryNetworkHelp": "Keep the TV awake on the same local network. Guest Wi-Fi, client isolation or separate VLANs can block discovery. You can also choose a brand and enter an IP address."
   },
   "pt": {
     "language": "Sinta-se em casa.",
@@ -171,7 +181,7 @@ export const copy = {
     "accountHelp": "Crie a conta do proprietário para proteger sua casa.",
     "name": "Seu nome",
     "username": "Usuário",
-    "passwordHelp": "Use pelo menos 12 caracteres.",
+    "passwordHelp": "Use pelo menos 4 caracteres.",
     "confirmPassword": "Confirme a senha",
     "mismatch": "As senhas não coincidem.",
     "login": "Bem-vindo de volta.",
@@ -283,7 +293,17 @@ export const copy = {
     "field_client_id": "ID do cliente",
     "field_client_secret": "Segredo do cliente",
     "powerOn": "Ligar",
-    "powerOff": "Desligar"
+    "powerOff": "Desligar",
+    "preparingTitle": "Preparando seu Nexus",
+    "preparingHelp": "Aguarde. Vamos avançar automaticamente quando os serviços da sua casa estiverem prontos.",
+    "setupTip1": "Controle dispositivos compatíveis da sua casa em um só lugar.",
+    "setupTip2": "Conecte luzes, TVs e outros dispositivos IoT compatíveis.",
+    "setupTip3": "Organize dispositivos por cômodo e tenha seus favoritos sempre à mão.",
+    "wifiChoose": "Toque em uma rede abaixo ou digite o nome.",
+    "discoveryDiagnostics": "Diagnóstico",
+    "discoveryExplanation": "Esta lista contém pareamentos pendentes. Atualizar consulta os resultados atuais; não faz uma varredura de todos os endereços.",
+    "discoveryServices": "Serviços de descoberta",
+    "discoveryNetworkHelp": "Mantenha a TV ligada na mesma rede local. Rede de convidados, isolamento de clientes ou VLANs separadas podem bloquear a descoberta. Você também pode escolher a marca e informar o IP."
   },
   "es": {
     "language": "Siéntete en casa.",
@@ -314,7 +334,7 @@ export const copy = {
     "accountHelp": "Crea la cuenta del propietario que protege tu hogar.",
     "name": "Tu nombre",
     "username": "Usuario",
-    "passwordHelp": "Usa al menos 12 caracteres.",
+    "passwordHelp": "Usa al menos 4 caracteres.",
     "confirmPassword": "Confirma la contraseña",
     "mismatch": "Las contraseñas no coinciden.",
     "login": "Bienvenido de nuevo.",
@@ -426,6 +446,16 @@ export const copy = {
     "field_client_id": "ID del cliente",
     "field_client_secret": "Secreto del cliente",
     "powerOn": "Encender",
-    "powerOff": "Apagar"
+    "powerOff": "Apagar",
+    "preparingTitle": "Preparando tu Nexus",
+    "preparingHelp": "Espera. Continuaremos automáticamente cuando los servicios estén listos.",
+    "setupTip1": "Controla dispositivos compatibles de tu hogar desde un solo lugar.",
+    "setupTip2": "Conecta luces, televisores y otros dispositivos IoT compatibles.",
+    "setupTip3": "Organiza tus dispositivos por habitación y guarda tus favoritos.",
+    "wifiChoose": "Toca una red abajo o escribe su nombre.",
+    "discoveryDiagnostics": "Diagnóstico",
+    "discoveryExplanation": "Esta lista contiene emparejamientos pendientes. Actualizar consulta los resultados actuales; no busca en todas las direcciones.",
+    "discoveryServices": "Servicios de detección",
+    "discoveryNetworkHelp": "Mantén el televisor encendido en la misma red local. Las redes de invitados, el aislamiento o VLAN distintas pueden bloquear la detección. También puedes elegir la marca e introducir la IP."
   }
 };

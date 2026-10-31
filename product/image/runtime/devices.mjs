@@ -27,15 +27,25 @@ export function mediaControls(entity,t,online=true){
  if(hasFeature(entity,2048)&&a.source_list?.length)html+='<label class="source-control">'+escape(t("inputSource"))+'<select aria-label="'+escape(t("inputSource"))+'" data-source data-entity="'+id+'" '+(disabled||off?"disabled":"")+'>'+a.source_list.map(source=>'<option '+(source===a.source?"selected":"")+' value="'+escape(source)+'">'+escape(source)+'</option>').join("")+'</select></label>';
  return html+'</div>';
 }
-export function discoveryView(data,t){
- const button=(attrs,label)=>'<button type="button" class="primary" '+attrs+'>'+escape(label)+'</button>';
- let html='<div class="section-heading"><div><h2>'+t("discoverTitle")+'</h2><p>'+t("discoverHelp")+'</p></div>'+button('data-action="discover-refresh"',t("refreshDevices"))+'</div>';
- if(!data)return html+'<p class="status" role="status">'+t("findingDevices")+'</p>';
- html+='<h2>'+t("nearbyDevices")+'</h2>';
- html+=data.found.length?'<div class="cards">'+data.found.map(device=>'<article class="card discovery-card"><span class="device-icon">'+icon("tv")+'</span><small>'+escape(device.brand)+'</small><h3>'+escape(device.name)+'</h3>'+button('data-action="pair" data-flow="'+escape(device.flow_id)+'"',t("addDevice"))+'</article>').join("")+'</div>':'<div class="empty-state"><span class="device-icon">'+icon("search")+'</span><h3>'+t("noNearby")+'</h3><p>'+t("noNearbyHelp")+'</p></div>';
- html+='<h2>'+t("addByBrand")+'</h2><p>'+t("addByBrandHelp")+'</p><div class="brand-grid">'+data.catalog.map(item=>'<button type="button" class="secondary" data-action="pair" data-handler="'+escape(item.handler)+'">'+escape(item.name)+'</button>').join("")+'</div>';
- if(data.configured.length)html+='<h2>'+t("connectedIntegrations")+'</h2><div class="integration-list">'+data.configured.map(item=>'<div><strong>'+escape(item.name)+'</strong><span>'+escape(item.brand)+'</span><small>'+t(item.state==="loaded"?"connectedDevice":"connectingDevice")+'</small></div>').join("")+'</div>';
- return html;
+const pages=new Map();
+export function shiftPage(key,delta){pages.set(key,Math.max(0,(pages.get(key)||0)+delta))}
+export function paged(items,key,t,size=2){
+ const total=Math.max(1,Math.ceil(items.length/size)),index=Math.min(pages.get(key)||0,total-1);pages.set(key,index);
+ return {items:items.slice(index*size,index*size+size),footer:total>1?'<div class="list-pager"><button type="button" data-action="list-prev" data-list="'+key+'" '+(index===0?'disabled':'')+'>'+t("back")+'</button><span>'+(index+1)+' / '+total+'</span><button type="button" data-action="list-next" data-list="'+key+'" '+(index===total-1?'disabled':'')+'>'+t("next")+'</button></div>':""};
+}
+export function discoveryView(data,t,section="found"){
+ let html='<div class="section-heading"><h2>'+t("discoverTitle")+'</h2><button type="button" data-action="discover-refresh">'+t("refreshDevices")+'</button></div>';
+ if(!data)return html+'<p role="status">'+t("findingDevices")+'</p>';
+ html+='<nav>'+[["found","nearbyDevices"],["catalog","addByBrand"],["configured","connectedIntegrations"],["diagnostics","discoveryDiagnostics"]].map(([key,label])=>'<button type="button" data-action="discovery-tab" data-tab="'+key+'" aria-pressed="'+(section===key)+'">'+t(label)+'</button>').join("")+'</nav>';
+ if(section==="diagnostics"){
+  const d=data.diagnostics||{};
+  return html+'<section class="card"><p>'+t("discoveryExplanation")+'</p><p>'+t("discoveryServices")+': SSDP '+(d.ssdp?'✓':'—')+' · mDNS '+(d.zeroconf?'✓':'—')+'</p><p>'+t("nearbyDevices")+': '+data.found.length+' · '+t("connectedIntegrations")+': '+data.configured.length+'</p><p>'+t("discoveryNetworkHelp")+'</p></section>';
+ }
+ const list=paged(data[section]||[],section,t,section==="catalog"?6:2);
+ if(section==="found")html+=list.items.length?'<div class="cards">'+list.items.map(d=>'<article class="card discovery-card"><small>'+escape(d.brand)+'</small><h3>'+escape(d.name)+'</h3><button type="button" class="primary" data-action="pair" data-flow="'+escape(d.flow_id)+'">'+t("addDevice")+'</button></article>').join("")+'</div>':'<div class="empty-state"><h3>'+t("noNearby")+'</h3><p>'+t("noNearbyHelp")+'</p></div>';
+ if(section==="catalog")html+='<p>'+t("addByBrandHelp")+'</p><div class="brand-grid">'+list.items.map(d=>'<button type="button" data-action="pair" data-handler="'+escape(d.handler)+'">'+escape(d.name)+'</button>').join("")+'</div>';
+ if(section==="configured")html+='<div class="integration-list">'+list.items.map(d=>'<div><strong>'+escape(d.name)+'</strong><span>'+escape(d.brand)+'</span><small>'+escape(d.state)+'</small></div>').join("")+'</div>';
+ return html+list.footer;
 }
 const fieldLabel=(name,t)=>{
  const value=t("field_"+name);
@@ -73,3 +83,4 @@ export function readPairValues(form,step){
  }
  return values;
 }
+

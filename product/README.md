@@ -1,4 +1,4 @@
-# Nexus controller — Raspberry Pi 5 alpha5
+# Nexus controller — Raspberry Pi 5 alpha6
 
 Alpha2 boot was confirmed by the owner on the Pi 5 touchscreen. Alpha3 introduced the native Nexus setup and management UI. Alpha4 replaces the floating keyboard with an integrated tablet keyboard.
 
@@ -28,11 +28,11 @@ The native dashboard displays real device states, room filters and favorites, an
 
 Touching an editable field opens the Nexus keyboard docked across the bottom of the screen. The content area shrinks and scrolls the active field into view. Next moves between fields; Done or Hide closes the keyboard. Letters, accents, numbers, punctuation, cursor movement, selection replacement and password fields are supported. The keyboard uses the selected interface language and also works inside device-control dialogs. It does not store typed text or offer network-based suggestions. The native keyboard opens automatically; no floating launcher or Onboard process is needed.
 
-The UI is checked at 800 × 480, 1280 × 800 and 800 × 1280. Physical touchscreen behavior still needs acceptance on the Pi. The integrated keyboard was introduced in alpha4 and is retained with the 3FX palette in alpha5.
+The UI is checked at 800 × 480, 1280 × 800 and 800 × 1280. Physical touchscreen behavior still needs acceptance on the Pi. The integrated keyboard was introduced in alpha4 and is retained with the 3FX palette in alpha6.
 
 ## Build and installation
 
-Open Actions → Nexus Raspberry Pi 5 image. The workflow builds on changes to product files on dev. Download nexus-rpi5-arm64-alpha5, extract its outer ZIP, and flash the .img.xz with Raspberry Pi Imager's Use custom option. Avoid applying Imager user customization. Flashing erases the selected card; back up existing configuration first.
+Open Actions → Nexus Raspberry Pi 5 image. The workflow builds on changes to product files on dev. Download nexus-rpi5-arm64-alpha6, extract its outer ZIP, and flash the .img.xz with Raspberry Pi Imager's Use custom option. Avoid applying Imager user customization. Flashing erases the selected card; back up existing configuration first.
 
 Use a Pi 5, adequate power/cooling, and a microSD of at least 32 GB. HDMI/USB touch or supported DSI displays are supported by the underlying OS; hardware-specific calibration may still be needed.
 
@@ -61,7 +61,8 @@ The device interaction journey verifies touch volume conversion, power, mute, so
 
 The ARM64 build verifies boot files, checksums, splash payload, installed graphical userspace, keyboard, bundled backend and restart persistence. These tests do not emulate the Pi's firmware, KMS, physical touch or audio.
 
-Physical alpha5 acceptance: cold boot and Plymouth handoff; touch typing; country/timezone applied to the host; Ethernet/Wi-Fi success and failure; owner setup; restart resumes dashboard; control actual devices; audio; power-loss recovery. NEXUS-DIAGNOSTICS.txt on the boot partition remains available for troubleshooting.
+Physical alpha6 acceptance: cold boot and Plymouth handoff; touch typing; country/timezone applied to the host; Ethernet/Wi-Fi success and failure; owner setup; restart resumes dashboard; control actual devices; audio; power-loss recovery. NEXUS-DIAGNOSTICS.txt on the boot partition remains available for troubleshooting.
 
 Upstream licenses and notices remain intact. The product uses the Home Assistant Core API internally.
+
 

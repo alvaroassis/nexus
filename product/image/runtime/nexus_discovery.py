@@ -127,7 +127,7 @@ def perform(backend, state, action, data):
             del PAIRS[key]
     session = state.get("cookie")
     if action == "discover":
-        flows, entries = backend.ws(state, [{"type": "config_entries/flow/progress"}, {"type": "config_entries/get"}])
+        flows, entries, config = backend.ws(state, [{"type": "config_entries/flow/progress"}, {"type": "config_entries/get"}, {"type": "get_config"}])
         handlers = backend.request("/api/config/config_entries/flow_handlers?type=integration", token=backend.access(state))
         found = []
         for flow in flows:
@@ -138,7 +138,7 @@ def perform(backend, state, action, data):
             domain = flow.get("handler", "")
             name = placeholders.get("name") or placeholders.get("title") or title(domain)
             found.append({"flow_id": flow["flow_id"], "handler": domain, "name": str(name)[:200], "brand": title(domain)})
-        return {"found": found, "configured": [{"name": e.get("title", title(e["domain"])), "brand": title(e["domain"]), "state": e.get("state")} for e in entries if e.get("source") not in ("ignore", "system")],
+        return {"diagnostics": {"ssdp": "ssdp" in config.get("components", []), "zeroconf": "zeroconf" in config.get("components", [])}, "found": found, "configured": [{"name": e.get("title", title(e["domain"])), "brand": title(e["domain"]), "state": e.get("state")} for e in entries if e.get("source") not in ("ignore", "system")],
                 "catalog": [{"handler": key, "name": value} for key, value in CATALOG.items() if key in handlers]}
     flow_id = data.get("flow_id")
     if action == "pair" and not flow_id:
@@ -180,3 +180,4 @@ def perform(backend, state, action, data):
     if current.get("type") in ("create_entry", "abort"):
         PAIRS.pop(flow_id, None)
     return clean_flow(current)
+

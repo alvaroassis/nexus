@@ -21,6 +21,7 @@ for _ in $(seq 1 90); do
     curl -fsS http://127.0.0.1:8099/health
     curl -fsS http://127.0.0.1:8099/keyboard.mjs | cmp - /opt/nexus/keyboard.mjs
     if pgrep -x onboard; then echo 'FAIL: floating keyboard is still running.' >&2; exit 1; fi
+    pgrep -f '^python3 /opt/nexus/pointer.py$' >/dev/null
     sleep 3
     import -window root /evidence/graphical-session.png
     echo 'PASS: Openbox autostart launched portal and visible Chromium Nexus window.'
@@ -30,4 +31,5 @@ for _ in $(seq 1 90); do
 done
 echo 'FAIL: graphical startup did not display Nexus.' >&2
 exit 1
+
 

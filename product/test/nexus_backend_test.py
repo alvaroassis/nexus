@@ -30,6 +30,15 @@ class BackendTests(unittest.TestCase):
                 with self.assertRaises(backend.Failure):
                     backend.perform("control",data,"cookie")
 
+    def test_owner_password_minimum_four(self):
+        with patch.object(backend,"onboarding",return_value=[{"step":"user","done":False}]), patch.object(backend,"request",return_value={"auth_code":"test"}) as request, patch.object(backend,"establish",return_value="cookie"):
+            for password in ["", "a", "abc"]:
+                with self.assertRaises(backend.Failure):
+                    backend.perform("owner",{"name":"Owner","username":"owner","password":password},"")
+            request.assert_not_called()
+            backend.perform("owner",{"name":"Owner","username":"owner","password":"abcd"},"")
+            self.assertEqual(request.call_args.args[1]["password"],"abcd")
+
     def test_owner_creation_obeys_backend_state(self):
         with patch.object(backend,"onboarding",return_value=[{"step":"user","done":True}]):
             with self.assertRaises(backend.Failure):
@@ -37,3 +46,4 @@ class BackendTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

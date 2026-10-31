@@ -166,7 +166,7 @@ def perform(action, data, cookie):
         if action == "owner":
             if not any(s["step"] == "user" and not s["done"] for s in onboarding()):
                 raise Failure("signIn", 409)
-            if not all(isinstance(data.get(k), str) and 1 <= len(data[k]) <= 128 for k in ("name", "username", "password")) or len(data["password"]) < 12:
+            if not all(isinstance(data.get(k), str) and 1 <= len(data[k]) <= 128 for k in ("name", "username", "password")) or len(data["password"]) < 4:
                 raise Failure("invalid")
             result = request("/api/onboarding/users", {k: data[k] for k in ("name", "username", "password")} | {"client_id": CLIENT, "language": data.get("language", "en")})
             return {"ok": True}, establish(result["auth_code"])
@@ -288,3 +288,4 @@ def perform(action, data, cookie):
             ws(state, [{"type": "call_service", "domain": domain, "service": service, "service_data": payload}])
             return {"ok": True}, None
         raise Failure("not_found", 404)
+

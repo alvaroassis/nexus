@@ -5,7 +5,9 @@ xsetroot -solid "#080a0c"
 xset s off
 xset -dpms
 xset s noblank
+python3 /opt/nexus/pointer.py &
 python3 /opt/nexus/portal.py &
 # The Nexus web keyboard owns touch input and viewport resizing.
 /opt/nexus/kiosk.sh &
+
 

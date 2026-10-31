@@ -2,7 +2,7 @@ name: Nexus Raspberry Pi 5 image
 on:
   workflow_dispatch:
   push:
-    branches: [dev, codex/alpha5-experience]
+    branches: [dev, codex/alpha6-experience]
     paths: ["product/**", ".github/workflows/nexus-image.yml"]
 permissions:
   contents: read
@@ -169,9 +169,10 @@ jobs:
       - name: Upload flashable image and checksums
         uses: actions/upload-artifact@v4
         with:
-          name: nexus-rpi5-arm64-alpha5
+          name: nexus-rpi5-arm64-alpha6
           path: product/dist/*
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
+
 

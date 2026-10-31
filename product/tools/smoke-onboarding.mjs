@@ -6,7 +6,7 @@ const browser=await chromium.launch();
 const resume=process.argv.includes("--resume");
 const context=await browser.newContext({viewport:{width:1280,height:800},...(resume?{storageState:process.env.NEXUS_STATE_DIR+"/browser-test.json"}:{})});
 const page=await context.newPage();
-const password="Nexus-CI-"+crypto.randomUUID();
+const password=crypto.randomUUID().slice(0,4);
 const errors=[];
 page.on("pageerror",e=>errors.push(e.message));
 await mkdir("product/qa/onboarding",{recursive:true});
@@ -105,4 +105,5 @@ try {
  await page.screenshot({path:"product/qa/onboarding/failure.png",fullPage:true});
  throw error;
 }finally{await browser.close()}
+
 

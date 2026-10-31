@@ -1,5 +1,5 @@
 import "./keyboard.mjs";
-import {mediaControls, discoveryView, pairingView, readPairValues, icon} from "./devices.mjs";
+import {mediaControls, discoveryView, pairingView, readPairValues, icon, paged, shiftPage} from "./devices.mjs";
 import { copy } from "./copy.mjs";
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -7,7 +7,9 @@ let draft = {language:"en",country:"US",time_zone:"America/New_York",home:""};
 try { draft = {...draft,...JSON.parse(localStorage.getItem("nexus-draft") || "{}")}; } catch {}
 if (!copy[draft.language]) draft.language = "en";
 let page="boot", token="", regions={}, state={}, network={interfaces:[]}, snapshot=null, busy=false, flow="", room="", tab="dashboard", editing=false, online=true;
+let discoverySection="found";
 let discovered=null, discovering=false, pairStep=null, pairPoll=null;
+let preparing=0, wifiPoints=[], wifiPage=0;
 const splashStarted=performance.now();
 const t = key => copy[draft.language][key] || copy[draft.language].invalid;
 const saveDraft = () => {try{localStorage.setItem("nexus-draft",JSON.stringify(draft))}catch{}};
@@ -26,7 +28,7 @@ async function run(fn) {
   try{await fn()}catch(e){message(e.message==="signIn"?"authFailed":e.message)}
   finally{busy=false;buttons.forEach(([b,disabled])=>{if(b.isConnected)b.disabled=disabled})}
 }
-function go(next){page=next;message("");render();$("app").focus();if(!matchMedia("(prefers-reduced-motion: reduce)").matches)$("app").animate([{opacity:0,transform:"translateY(8px)"},{opacity:1,transform:"none"}],{duration:220});saveDraft()}
+function go(next){if(next!=="preparing")preparing++;document.body.dataset.page=next;page=next;message("");render();$("app").focus();if(!matchMedia("(prefers-reduced-motion: reduce)").matches)$("app").animate([{opacity:0,transform:"translateY(8px)"},{opacity:1,transform:"none"}],{duration:220});saveDraft()}
 function regionFields(){
   const names=new Intl.DisplayNames([draft.language],{type:"region"});
   const countries=Object.keys(regions).sort((a,b)=>names.of(a).localeCompare(names.of(b),draft.language));
@@ -44,6 +46,7 @@ function render(){
  $("step-label").textContent=index>=0&&!editing?t("step")+" "+(index+1)+" / 6":"";
  let html="";
  if(page==="boot")html='<section class="splash"><h1>NEXUS</h1><div class="loader"></div><p>'+t("starting")+'</p></section>';
+ if(page==="preparing")html='<section class="preparing"><h1>'+t("preparingTitle")+'</h1><div class="loader"></div><p role="status">'+t("preparingHelp")+'</p><p id="setup-tip">'+t("setupTip1")+'</p><div class="actions">'+button("network","back","secondary")+'</div></section>';
  if(page==="language")html='<h1>'+t("language")+'</h1><p>'+t("languageHelp")+'</p><div class="choices">'+[["en","English"],["pt","Português"],["es","Español"]].map(([v,n])=>'<button class="choice" data-lang="'+v+'" aria-pressed="'+(v===draft.language)+'">'+n+'<span>'+(v===draft.language?"✓":"")+'</span></button>').join("")+'</div>'+footer(editing?"cancel":null);
  if(page==="region")html='<h1>'+t("region")+'</h1><p>'+t("regionHelp")+'</p><form id="region-form">'+regionFields()+'<div class="actions">'+button("language","back","secondary back")+'<button class="primary">'+t("next")+'</button></div></form>';
  if(page==="network"){
@@ -51,6 +54,7 @@ function render(){
    html='<h1>'+t("network")+'</h1><p>'+t("networkHelp")+'</p><p id="connection" class="status '+(network.interfaces.some(i=>i.connected)?"good":"")+'">'+t(network.interfaces.some(i=>i.connected)?"connected":"disconnected")+'</p>';
    if(wireless.length)html+='<form id="wifi-form"><input type="hidden" name="interface" value="'+esc(wireless[0].interface)+'"><div class="grid"><label>'+t("ssid")+'<input name="ssid" list="networks" required maxlength="32" autocomplete="off"></label><datalist id="networks"></datalist><label>'+t("security")+'<select name="auth"><option value="wpa-psk">WPA / WPA2 / WPA3</option><option value="open">'+t("open")+'</option></select></label></div><label>'+t("password")+'<input name="password" type="password" autocomplete="off" maxlength="64"></label><div class="actions">'+button("scan","scan","secondary")+'<button class="primary">'+t("join")+'</button></div></form>';
    else html+='<p>'+t("noWifi")+'</p>';
+   if(wireless.length)html+='<div id="wifi-results"></div>';
    html+=footer(editing?"cancel":"region","network-next",editing?"save":network.interfaces.some(i=>i.connected)?"next":"offline");
  }
  if(page==="account"||page==="login"){
@@ -60,7 +64,7 @@ function render(){
    else{
      if(fresh)html+=field("name","name","text",'maxlength="80" autocomplete="name"');
      html+=field("username","username","text",'maxlength="80" autocapitalize="none" autocomplete="username"');
-     html+=field("password","password","password",'maxlength="128" '+(fresh?'minlength="12" autocomplete="new-password"':'autocomplete="current-password"'));
+     html+=field("password","password","password",'maxlength="128" '+(fresh?'minlength="4" autocomplete="new-password"':'autocomplete="current-password"'));
      if(fresh)html+='<p>'+t("passwordHelp")+'</p>'+field("confirmation","confirmPassword","password",'autocomplete="new-password"');
    }
    html+='<div class="actions">'+(fresh?button("network","back","secondary back"):"")+'<button class="primary">'+t(fresh?"next":"signIn")+'</button></div></form>';
@@ -69,13 +73,15 @@ function render(){
  if(page==="done")html='<section class="splash"><h1 style="letter-spacing:-.04em">'+t("done")+'</h1><p>'+t("doneHelp")+'</p>'+button("enter","enter")+'</section>';
  if(page==="dashboard")html=dashboard();
  $("app").innerHTML='<section class="screen">'+html+'</section>';
+ if(page==="network")renderWifi();
+ if(page==="account"||page==="login"){const form=$("account-form"),grid=document.createElement("div");grid.className="grid";for(const label of [...form.children].filter(e=>e.tagName==="LABEL"))grid.append(label);form.prepend(grid)}
 }
 function dashboard(){
  if(!snapshot)return '<p>'+t("starting")+'</p>';
  const nav='<nav>'+["dashboard","devices","settings"].map(k=>button("tab-"+k,k,"secondary",'aria-pressed="'+(tab===k)+'"')).join("")+'</nav>';
- let body='<h1>'+esc(snapshot.config.location_name)+'</h1>'+nav;
+ let body='<div class="dashboard-top"><h1>'+esc(snapshot.config.location_name)+'</h1>'+nav+'</div>';
  if(!online)body+='<p role="status">'+t("connectionLost")+'</p>';
- if(discovering&&snapshot.user.is_admin)return body+'<div class="actions">'+button("devices-back","back","secondary back")+'</div>'+discoveryView(discovered,t);
+ if(discovering&&snapshot.user.is_admin)return '<div class="actions">'+button("devices-back","back","secondary back")+'</div>'+discoveryView(discovered,t,discoverySection);
  if(tab==="devices"&&snapshot.user.is_admin)body+='<div class="section-heading"><h2>'+t("devices")+'</h2>'+button("discover","addDevice","primary")+'</div>';
  if(tab==="settings")return body+'<div class="cards"><section class="card"><h2>'+esc(snapshot.user.name)+'</h2><p>'+esc(snapshot.config.time_zone)+'</p>'+button("logout","logout","secondary")+'</section><section class="card"><h2>'+t("settings")+'</h2><div class="choices">'+button("edit-language","languageHelp","secondary")+(snapshot.user.is_admin?button("edit-region","homeSettings","secondary")+button("edit-network","networkSettings","secondary"):"")+'</div></section></div>';
  const favorites=snapshot.preferences.favorites||[];
@@ -89,17 +95,41 @@ function dashboard(){
  if(room)entities=entities.filter(e=>areaOf(e.entity_id)===room);
  body+='<label>'+t("all")+'<select id="room"><option value="">'+t("all")+'</option>'+snapshot.areas.map(a=>'<option value="'+esc(a.area_id)+'" '+(room===a.area_id?"selected":"")+'>'+esc(a.name)+'</option>').join("")+'</select></label>';
  if(!entities.length)return body+'<section class="card"><h2>'+t("empty")+'</h2><p>'+t("emptyHelp")+'</p></section>';
- return body+'<div class="cards">'+entities.map(e=>{
+ const visible=paged(entities,"devices-"+tab+"-"+room,t);
+ return body+'<div class="cards">'+visible.items.map(e=>{
  const domain=e.entity_id.split(".")[0], unavailable=["unavailable","unknown"].includes(e.state);
  let control=button("details","details","secondary",'data-entity="'+esc(e.entity_id)+'"');
  if(["light","switch","fan"].includes(domain))control=button("control",e.state==="on"?"powerOff":"powerOn","primary",'data-entity="'+esc(e.entity_id)+'" data-service="'+(e.state==="on"?"turn_off":"turn_on")+'" '+(!online||unavailable?"disabled":""));
  if(domain==="media_player")control=mediaControls(e,t,online);
  if(domain==="scene")control=button("control","activate","primary",'data-entity="'+esc(e.entity_id)+'" data-service="turn_on" '+(!online?"disabled":""));
  return '<article class="card '+(e.state==="on"?"on":"")+'"><div class="card-top"><small>'+t('type_'+domain)+'</small><button class="star" data-action="favorite" data-entity="'+esc(e.entity_id)+'" aria-label="'+t("favorite")+': '+esc(e.attributes.friendly_name||e.entity_id)+'" aria-pressed="'+favorites.includes(e.entity_id)+'">'+(favorites.includes(e.entity_id)?"★":"☆")+'</button></div><h2>'+esc(e.attributes.friendly_name||e.entity_id)+'</h2><p>'+esc(unavailable?t("unavailable"):["on","off"].includes(e.state)?t(e.state):["playing","paused","idle","buffering"].includes(e.state)?t("state_"+e.state):e.state)+' '+esc(e.attributes.unit_of_measurement||"")+'</p>'+control+'</article>';
- }).join("")+'</div>';
+ }).join("")+'</div>'+visible.footer;
+}
+function renderWifi(){
+ const target=$("wifi-results");if(!target)return;
+ const slice=wifiPoints.slice(wifiPage*2,wifiPage*2+2);
+ target.innerHTML='<small>'+t("wifiChoose")+'</small><div class="wifi-options">'+slice.map(p=>'<button type="button" data-action="wifi-select" data-ssid="'+esc(p.ssid)+'">'+esc(p.ssid)+' <small>'+Number(p.signal)+'%</small></button>').join("")+'</div>'+ (wifiPoints.length>2?'<div class="wifi-pager">'+button("wifi-prev","back","secondary",wifiPage===0?"disabled":"")+'<span>'+(wifiPage+1)+' / '+Math.ceil(wifiPoints.length/2)+'</span>'+button("wifi-next","next","secondary",(wifiPage+1)*2>=wifiPoints.length?"disabled":"")+'</div>':"");
+}
+async function scanWifi(){
+ const iface=network.interfaces.find(i=>i.type==="wireless")?.interface;if(!iface)return;
+ const result=await request("/scan",{interface:iface});
+ const unique=new Map();for(const point of result.accesspoints){if(!unique.has(point.ssid)||unique.get(point.ssid).signal<point.signal)unique.set(point.ssid,point)}
+ wifiPoints=[...unique.values()].sort((a,b)=>b.signal-a.signal);wifiPage=0;
+ if(page==="network"){$("networks")?.replaceChildren(...wifiPoints.map(p=>new Option(p.ssid,p.ssid)));renderWifi()}
+}
+async function prepare(){
+ go("preparing");const generation=++preparing;let attempt=0;
+ while(page==="preparing"&&generation===preparing){
+  try{const next=await request("/state");if(page!=="preparing"||generation!==preparing)return;
+   if(next.ready){state=next;if(state.authenticated&&(state.preferences?.setup||!state.user?.is_admin)){await loadDashboard();if(generation===preparing)go("dashboard")}else go(state.authenticated?"home":state.new?"account":"login");return}
+  }catch{}
+  if(page!=="preparing"||generation!==preparing)return;
+  $("setup-tip").textContent=t("setupTip"+(attempt%3+1));if(attempt++===15)message("slow");
+  await new Promise(resolve=>setTimeout(resolve,2000));
+ }
 }
 async function refreshNetwork(){
- try{network=await request("/network");if(page==="network")render()}catch{network={interfaces:[]};if(page==="network")render();message("networkFailed")}
+ try{network=await request("/network");if(page==="network"){render();try{await scanWifi()}catch{message("networkFailed")}}}catch{network={interfaces:[]};if(page==="network")render();message("networkFailed")}
 }
 async function loadDashboard(){
  snapshot=await request("/app/snapshot",{});
@@ -175,17 +205,14 @@ document.addEventListener("click",e=>{
    if(editing&&page==="language"){await request("/app/preferences",{language:draft.language});await loadDashboard();go("dashboard");editing=false}
    else go("region");
  }
- if(action==="scan"){
-   const result=await request("/scan",{interface:network.interfaces.find(i=>i.type==="wireless")?.interface});
-   $("networks").replaceChildren(...[...new Set(result.accesspoints.map(p=>p.ssid))].map(s=>new Option(s,s)));
- }
+ if(action==="scan")await scanWifi();
+ if(action==="list-prev"||action==="list-next"){shiftPage(b.dataset.list,action==="list-next"?1:-1);render()}
+ if(action==="discovery-tab"){discoverySection=b.dataset.tab;render()}
+ if(action==="wifi-select"){$("wifi-form").elements.ssid.value=b.dataset.ssid;$("wifi-form").elements.password.focus()}
+ if(action==="wifi-prev"||action==="wifi-next"){wifiPage+=action==="wifi-next"?1:-1;renderWifi()}
  if(action==="network-next"){
-   if(editing){editing=false;await loadDashboard();go("dashboard")}
-   else{
-     state=await request("/state");
-     if(!state.ready)throw new Error("starting");
-     go(state.authenticated?"home":state.new?"account":"login");
-   }
+  if(editing){editing=false;await loadDashboard();go("dashboard")}
+  else void prepare();
  }
  if(action==="enter"||action==="cancel"){editing=false;await loadDashboard();go("dashboard")}
  if(action.startsWith("tab-")){tab=action.slice(4);discovering=false;render()}
@@ -261,7 +288,7 @@ async function boot(){
   if(page==="boot"){
    if(state.authenticated&&(state.preferences?.setup||!state.user?.is_admin)){await loadDashboard();go("dashboard")}
    else if(state.authenticated)go("language");
-   else go(state.new?"language":"login");
+   else if(!state.ready)void prepare();else go(state.new?"language":"login");
   }
  }catch{message("starting");setTimeout(boot,3000)}
 }
@@ -274,4 +301,5 @@ setInterval(async()=>{
  try{if(discovering){await refreshDiscovery();return}await loadDashboard();if(!document.activeElement?.matches("select,input,button[data-action=control]"))render()}
  catch(e){online=false;render();if(e.message==="signIn"){snapshot=null;go("login")}else message("connectionLost")}
 },5000);
+
 

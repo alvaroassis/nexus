@@ -10,6 +10,7 @@ const evidence=fileURLToPath(new URL("../qa/keyboard/",import.meta.url));
 await mkdir(evidence,{recursive:true});
 const browser=await chromium.launch(process.env.NEXUS_CHROME?{executablePath:process.env.NEXUS_CHROME}:{});
 const page=await browser.newPage({viewport:{width:800,height:480},hasTouch:true,deviceScaleFactor:1});
+let stateCalls=0;
 const errors=[];page.on("pageerror",e=>errors.push(e.message));
 const keyboard=page.locator("nexus-keyboard");
 const key=name=>keyboard.getByRole("button",{name,exact:true});
@@ -26,7 +27,7 @@ async function soft(text){
 }
 async function visibleField(locator){
  const field=await locator.boundingBox(),board=await keyboard.boundingBox();
- assert.ok(board&&field);
+ assert.ok(board&&field); assert.ok(await page.locator("#app-viewport").evaluate(el=>el.scrollHeight<=el.clientHeight+1),"Form must fit above the keyboard");
  assert.ok(field.y>=0,"Field must remain inside the visible viewport");
  assert.ok(field.y+field.height<=board.y+1,"Keyboard must not cover the active field");
  assert.ok(board.x>=0&&board.x+board.width<=page.viewportSize().width+1);
@@ -35,6 +36,7 @@ try{
  await page.route("http://nexus.test/**",async route=>{
   const name=new URL(route.request().url()).pathname;
   const fixtures={"/session":{token:"test-only"},"/state":{ready:true,new:true,authenticated:false},"/regions":{US:["America/New_York"],BR:["America/Sao_Paulo"]},"/network":{interfaces:[{interface:"eth0",type:"ethernet",connected:true},{interface:"wlan0",type:"wireless",connected:false}]},"/scan":{accesspoints:[{ssid:"Nexus test Wi-Fi",signal:90}]}};
+  if(name==="/state"&&++stateCalls>1&&stateCalls<4)return route.fulfill({json:{ready:false}});
   if(fixtures[name])return route.fulfill({json:fixtures[name]});
   const file=name==="/"?"portal.html":name.slice(1);
   if(!["portal.html","portal.css","portal.mjs","copy.mjs","keyboard.mjs","devices.mjs","brand-3fx.png"].includes(file))return route.fulfill({status:404,body:""});
@@ -46,10 +48,13 @@ try{
  await page.getByRole("button",{name:"Avançar",exact:true}).tap();
  await page.getByRole("button",{name:"Buscar redes",exact:true}).tap();
  await page.waitForFunction(()=>document.querySelector('#networks option')?.value==='Nexus test Wi-Fi');
- await page.getByLabel("Nome da rede",{exact:true}).tap();
+ assert.ok(await page.locator("#app-viewport").evaluate(el=>el.scrollHeight<=el.clientHeight+1),"Wi-Fi setup must fit without scrolling"); await page.getByLabel("Nome da rede",{exact:true}).tap();
  await soft("nexus");assert.equal(await page.getByLabel("Nome da rede",{exact:true}).inputValue(),"nexus");
  await key("Recolher teclado").tap();
  await page.getByRole("button",{name:"Avançar",exact:true}).tap();
+ await page.getByRole("heading",{name:"Preparando seu Nexus",exact:true}).waitFor();
+ await page.getByLabel("Seu nome",{exact:true}).waitFor();
+ assert.equal(await page.getByLabel("Senha",{exact:true}).getAttribute("minlength"),"4");
  const name=page.getByLabel("Seu nome",{exact:true});
  await name.tap();
  await soft("Casa");
@@ -132,4 +137,5 @@ try{
  console.error(await page.evaluate(()=>({focus:document.activeElement?.outerHTML,keyboard:document.querySelector('nexus-keyboard')?.outerHTML,dialog:document.querySelector('#details')?.outerHTML})));
  throw error;
 }finally{await browser.close()}
+
 

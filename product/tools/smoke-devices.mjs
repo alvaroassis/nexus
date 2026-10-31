@@ -7,7 +7,7 @@ const {chromium}=await import(pathToFileURL(process.env.NEXUS_PLAYWRIGHT));
 const root=fileURLToPath(new URL("../image/runtime/",import.meta.url));
 const evidence=fileURLToPath(new URL("../qa/devices/",import.meta.url));
 await mkdir(evidence,{recursive:true});
-const browser=await chromium.launch();
+const browser=await chromium.launch(process.env.NEXUS_CHROME?{executablePath:process.env.NEXUS_CHROME}:{});
 const page=await browser.newPage({viewport:{width:1280,height:800},hasTouch:true});
 const errors=[];page.on("pageerror",e=>errors.push(e.message));
 const commands=[],pairValues=[];
@@ -87,12 +87,14 @@ try{
  assert.ok(!(await page.evaluate(()=>JSON.stringify(localStorage))).includes("1234"));
  await page.getByRole("dialog").getByRole("button",{name:"Fechar",exact:true}).tap();
  await page.getByRole("heading",{name:"Nenhum novo dispositivo ainda",exact:true}).waitFor();
+ await page.getByRole("button",{name:"Escolha uma marca",exact:true}).tap();
  await page.getByRole("button",{name:"Roku",exact:true}).tap();
  await page.getByLabel("Endereço IP ou nome do dispositivo",{exact:true}).waitFor();
  await page.getByRole("dialog").getByRole("button",{name:"Fechar",exact:true}).tap();
  await page.getByRole("button",{name:"Voltar",exact:true}).tap();
  await page.setViewportSize({width:800,height:480});
  await page.screenshot({path:path.join(evidence,"04-tablet.png")});
+ assert.ok(await page.locator("#app-viewport").evaluate(el=>el.scrollHeight<=el.clientHeight+1),"Tablet dashboard must fit without scrolling");
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
  admin=false;await page.reload();
  await page.locator("#boot-splash").waitFor({state:"detached"});
@@ -102,3 +104,5 @@ try{
  process.stdout.write("PASS: animated startup, local brand, touch volume, mute, power, source selection, feature gating, discovery, pairing retry, cancellation and admin visibility.\n");
 }catch(error){await page.screenshot({path:path.join(evidence,"failure.png")});throw error}
 finally{await browser.close()}
+
+
